@@ -40,10 +40,11 @@ Compila `.env.production` (valori pubblici) e, in `worker/wrangler.toml`, `SUPAB
 ## 4. Caricamento dei dati (una volta sola)
 ```
 node scripts/web-images.mjs "G:\Il mio Drive\68-77" ..\web
-node scripts/bollettini-pdf.mjs "G:\Il mio Drive\68-77" ..\pdf
-node scripts/carica-r2.mjs ..\web ..\pdf
-node scripts/importa-supabase.mjs "G:\Il mio Drive\68-77" ..\pdf
+node scripts/carica-r2.mjs ..\web "G:\Il mio Drive\68-77"
+node scripts/importa-supabase.mjs "G:\Il mio Drive\68-77" "G:\Il mio Drive\68-77"
 ```
+I PDF dei Bollettini (084.pdf, 085.pdf, …) sono già nella cartella 68-77. Per rigenerarli:
+`node scripts/bollettini-pdf.mjs "G:\Il mio Drive\68-77" <cartella output>`.
 
 ## 5. Worker di caricamento
 ```
