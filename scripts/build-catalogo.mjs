@@ -45,7 +45,7 @@ const records = rows
       autore: text(get(r, 'autore')),
       luogoStampa: text(get(r, 'luogo di stampa')),
       data: text(get(r, 'data')),
-      dataOrd: text(get(r, 'data per ordinamento')),
+      dataOrd: num(get(r, 'data per ordinamento')), // gli anni soli sono numeri in Excel: 1976.0 -> 1976
       citta: text(get(r, 'città')),
       luogo: text(get(r, 'luogo')),
       evento: text(get(r, 'evento')),

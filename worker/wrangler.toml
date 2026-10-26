@@ -1,0 +1,13 @@
+name = "archivio-upload"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "archivio-foto"
+
+[vars]
+ALLOWED_ORIGIN = "https://sbenzi17.github.io"
+# Da compilare dopo aver creato il progetto Supabase (valori pubblici, non segreti)
+SUPABASE_URL = ""
+SUPABASE_ANON_KEY = ""

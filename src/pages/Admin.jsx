@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { search, imageUrl, getRecords, exportCSV } from '../data/photos'
+import { hasBackend } from '../lib/supabase'
 
 const PAGE = 50
 
@@ -30,9 +31,11 @@ export default function Admin() {
         </div>
       </div>
 
-      <p className="demo-note">
-        Versione dimostrativa: le modifiche vengono salvate solo in questo browser.
-      </p>
+      {!hasBackend && (
+        <p className="demo-note">
+          Versione dimostrativa: le modifiche vengono salvate solo in questo browser.
+        </p>
+      )}
 
       <form style={{ marginBottom: '1.5rem' }} onSubmit={(e) => e.preventDefault()}>
         <input

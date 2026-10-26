@@ -1,37 +1,148 @@
 // Unico punto di accesso ai dati del catalogo.
-// Oggi legge catalogo.json (generato dall'Excel con scripts/build-catalogo.mjs);
-// quando ci sarà il database basterà sostituire queste funzioni con chiamate API.
-import catalogo from './catalogo.json'
+// Con Supabase configurato (.env.production) legge e scrive sul database e le immagini stanno su R2;
+// altrimenti usa catalogo.json e salva le modifiche solo nel browser (modalità demo).
+// Il catalogo viene caricato tutto all'avvio (loadCatalogo) e poi filtrato in memoria.
+import { supabase, hasBackend, IMG_BASE, uploadFile, deleteFile } from '../lib/supabase'
 
 const BASE = import.meta.env.BASE_URL
 const EDITS_KEY = 'archivio-modifiche-demo'
 
-// Modifiche fatte dal pannello admin: in questa demo restano solo nel browser
+let cache = []
+
+const fromDb = (r) => ({
+  id: r.id, status: r.status, fondo: r.fondo, serie: r.serie, titolo: r.titolo, autore: r.autore,
+  luogoStampa: r.luogo_stampa, data: r.data, dataOrd: r.data_ord, citta: r.citta, luogo: r.luogo,
+  evento: r.evento, formazione: r.formazione, persone: r.persone, parole: r.parole,
+  sequenza: r.sequenza, tipologia: r.tipologia, supporto: r.supporto, dimensioni: r.dimensioni,
+  orientamento: r.orientamento, colore: r.colore, particolare: r.particolare, fronteRetro: r.fronte_retro,
+  pagine: r.pagine, note: r.note, immagini: r.immagini, pdf: r.pdf, updatedAt: r.updated_at,
+})
+
+const toDb = (r) => ({
+  id: r.id, status: r.status || 'ok', fondo: r.fondo, serie: r.serie, titolo: r.titolo, autore: r.autore,
+  luogo_stampa: r.luogoStampa, data: r.data, data_ord: r.dataOrd, citta: r.citta, luogo: r.luogo,
+  evento: r.evento, formazione: r.formazione || [], persone: r.persone || [], parole: r.parole || [],
+  sequenza: r.sequenza, tipologia: r.tipologia, supporto: r.supporto, dimensioni: r.dimensioni,
+  orientamento: r.orientamento, colore: r.colore, particolare: r.particolare, fronte_retro: r.fronteRetro,
+  pagine: r.pagine, note: r.note, immagini: r.immagini || [], pdf: r.pdf || null,
+})
+
+// Modalità demo: modifiche salvate in localStorage
 function loadEdits() {
   try { return JSON.parse(localStorage.getItem(EDITS_KEY)) || {} } catch { return {} }
 }
 
-function allRecords() {
+export async function loadCatalogo() {
+  if (hasBackend) {
+    const rows = []
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from('schede').select('*').order('id').range(from, from + 999)
+      if (error) throw error
+      rows.push(...data)
+      if (data.length < 1000) break
+    }
+    cache = rows.map(fromDb)
+    return
+  }
+  const { default: catalogo } = await import('./catalogo.json')
   const edits = loadEdits()
-  const merged = catalogo.map(r => edits[r.id] ? { ...r, ...edits[r.id] } : r)
-  const nuove = Object.values(edits).filter(e => !catalogo.some(r => r.id === e.id))
-  return [...nuove, ...merged]
+  const base = catalogo.map(r => ({ ...r, immagini: r.img ? [r.id] : [] }))
+  const merged = base.map(r => edits[r.id] ? { ...r, ...edits[r.id] } : r)
+  const nuove = Object.values(edits).filter(e => !base.some(r => r.id === e.id))
+  cache = [...nuove, ...merged]
 }
 
-export function saveRecord(record) {
-  const edits = loadEdits()
-  edits[record.id] = record
-  try { localStorage.setItem(EDITS_KEY, JSON.stringify(edits)) } catch { /* storage non disponibile */ }
+function allRecords() {
+  return cache
+}
+
+// Riduce l'immagine nel browser prima del caricamento
+export function resizeImage(file, maxSide, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(resolve, 'image/jpeg', quality)
+    }
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+const blobToDataUrl = (blob) => new Promise((resolve) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(reader.result)
+  reader.readAsDataURL(blob)
+})
+
+// Salva una scheda; `file` (facoltativo) è la nuova immagine principale
+export async function saveRecord(record, file) {
+  const r = { ...record }
+  if (hasBackend) {
+    if (file) {
+      const name = r.immagini?.[0] || r.id
+      await uploadFile(`thumbs/${name}.jpg`, await resizeImage(file, 600, 0.75))
+      await uploadFile(`large/${name}.jpg`, await resizeImage(file, 1600, 0.82))
+      r.immagini = r.immagini?.length ? r.immagini : [name]
+    }
+    const { data, error } = await supabase.from('schede').upsert(toDb(r)).select().single()
+    if (error) throw error
+    Object.assign(r, fromDb(data))
+  } else {
+    if (file) r.imgData = await blobToDataUrl(await resizeImage(file, 1200, 0.8))
+    const edits = loadEdits()
+    edits[r.id] = r
+    try { localStorage.setItem(EDITS_KEY, JSON.stringify(edits)) } catch { /* storage pieno o non disponibile */ }
+  }
+  const i = cache.findIndex(x => x.id === r.id)
+  if (i >= 0) cache[i] = r
+  else cache.unshift(r)
+  return r
+}
+
+export async function deleteRecord(id) {
+  const r = getPhotoDetail(id)
+  if (!r) return
+  if (hasBackend) {
+    const { error } = await supabase.from('schede').delete().eq('id', id)
+    if (error) throw error
+    for (const name of r.immagini || []) {
+      await deleteFile(`thumbs/${name}.jpg`)
+      await deleteFile(`large/${name}.jpg`)
+    }
+    if (r.pdf) await deleteFile(`pdf/${r.pdf}`)
+  } else {
+    const edits = loadEdits()
+    delete edits[id]
+    try { localStorage.setItem(EDITS_KEY, JSON.stringify(edits)) } catch { /* ignora */ }
+  }
+  cache = cache.filter(x => x.id !== id)
 }
 
 export function nextId() {
-  const max = Math.max(...allRecords().map(r => parseInt(r.id, 10) || 0))
+  const max = Math.max(0, ...allRecords().map(r => parseInt(r.id, 10) || 0))
   return String(max + 1).padStart(3, '0')
 }
 
-export function imageUrl(record, size = 'thumbs') {
+const hasImage = (r) => Boolean(r.imgData || r.immagini?.length)
+
+export function imageUrl(record, size = 'thumbs', index = 0) {
+  if (!record) return null
   if (record.imgData) return record.imgData
-  return record.img ? `${BASE}foto/${size}/${record.id}.jpg` : null
+  const name = record.immagini?.[index]
+  if (!name) return null
+  if (!hasBackend) return `${BASE}foto/${size}/${name}.jpg`
+  // updatedAt evita che il browser mostri la versione vecchia dopo una sostituzione
+  const v = record.updatedAt ? `?v=${Date.parse(record.updatedAt)}` : ''
+  return `${IMG_BASE}/${size}/${name}.jpg${v}`
+}
+
+export function pdfUrl(record) {
+  return hasBackend && record?.pdf ? `${IMG_BASE}/pdf/${record.pdf}` : null
 }
 
 function shortPlace(r) {
@@ -43,14 +154,12 @@ export function toThumb(r) {
   return {
     id: r.id,
     bg: `bg-${(parseInt(r.id, 10) % 8) + 1}`,
-    label: r.img || r.imgData ? '' : 'Immagine in digitalizzazione',
+    label: hasImage(r) ? '' : 'Immagine in digitalizzazione',
     caption: [r.titolo, shortPlace(r)].filter(Boolean).join(' · '),
     src: imageUrl(r),
     large: imageUrl(r, 'large'),
   }
 }
-
-export const totalCount = catalogo.length
 
 export function getRecords() {
   return allRecords()
@@ -61,11 +170,15 @@ export function getPhotoDetail(id) {
 }
 
 export function recentPhotos() {
-  return allRecords().filter(r => r.img || r.imgData).slice(0, 12).map(toThumb)
+  return [...allRecords()]
+    .filter(hasImage)
+    .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+    .slice(0, 12)
+    .map(toThumb)
 }
 
 export function featuredPhotos(n = 3) {
-  return allRecords().filter(r => r.img && r.serie === 'Fotografie').filter((_, i) => i % 7 === 0).slice(0, n)
+  return allRecords().filter(r => hasImage(r) && r.serie === 'Fotografie').filter((_, i) => i % 7 === 0).slice(0, n)
 }
 
 const year = (r) => (r.dataOrd || '').slice(0, 4)
@@ -96,7 +209,7 @@ export function search(q, campo) {
     ].join(' ')).includes(needle))
   }
   // Prima le schede che hanno già l'immagine online
-  return [...found].sort((a, b) => (b.img ? 1 : 0) - (a.img ? 1 : 0))
+  return [...found].sort((a, b) => (hasImage(b) ? 1 : 0) - (hasImage(a) ? 1 : 0))
 }
 
 // Export con le stesse colonne del catalogo Excel originale.
@@ -109,6 +222,7 @@ const exportColumns = [
   ['sequenza', 'sequenza'], ['tipologia', 'tipologia'], ['supporto', 'supporto'],
   ['dimensioni originale', 'dimensioni'], ['orientamento', 'orientamento'], ['colore', 'colore'],
   ['particolare', 'particolare'], ['fronte retro', 'fronteRetro'], ['pagine', 'pagine'], ['note', 'note'],
+  ['file immagini', 'immagini'], ['pdf', 'pdf'],
 ]
 
 export function exportCSV() {

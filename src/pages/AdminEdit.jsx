@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { getPhotoDetail, imageUrl, saveRecord, nextId } from '../data/photos'
+import { getPhotoDetail, imageUrl, saveRecord, deleteRecord, nextId } from '../data/photos'
+import { hasBackend } from '../lib/supabase'
 
 const empty = {
   titolo: '', autore: '', data: '', dataOrd: '', citta: '', luogo: '', evento: '',
   fondo: 'Fondo Maurizio Benzi', serie: 'Fotografie', tipologia: 'fotografia', status: 'ok',
-  persone: [], formazione: [], parole: [], note: '', img: false,
+  persone: [], formazione: [], parole: [], note: '', immagini: [],
 }
 
 const textFields = [
@@ -18,6 +19,10 @@ const textFields = [
   ['evento', 'Evento'],
   ['fondo', 'Fondo'],
   ['serie', 'Serie'],
+  ['tipologia', 'Tipologia'],
+  ['supporto', 'Supporto'],
+  ['orientamento', 'Orientamento'],
+  ['colore', 'Colore'],
 ]
 
 const listFields = [
@@ -26,54 +31,55 @@ const listFields = [
   ['parole', 'Parole chiave'],
 ]
 
-// Riduce l'immagine nel browser: in produzione si caricherà nello storage
-function resizeImage(file, maxSide = 1200) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      const scale = Math.min(1, maxSide / Math.max(img.width, img.height))
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(img.src)
-      resolve(canvas.toDataURL('image/jpeg', 0.8))
-    }
-    img.onerror = reject
-    img.src = URL.createObjectURL(file)
-  })
-}
-
 export default function AdminEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isNew = id === 'nuova'
-  const original = isNew ? { ...empty, id: nextId() } : getPhotoDetail(id)
+  const [original] = useState(() => isNew ? { ...empty, id: nextId() } : getPhotoDetail(id))
   const [preview, setPreview] = useState(original ? imageUrl(original, 'large') : null)
-  const [imgData, setImgData] = useState(original?.imgData || null)
+  const [file, setFile] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
   if (!original) {
     return <main className="container"><p>Scheda non trovata. <Link to="/admin">Indietro</Link></p></main>
   }
 
-  const onFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const data = await resizeImage(file)
-    setImgData(data)
-    setPreview(data)
+  const onFile = (e) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
   }
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
     const record = { ...original }
     for (const [k] of textFields) record[k] = (form.get(k) || '').trim()
     for (const [k] of listFields) record[k] = (form.get(k) || '').split(',').map(s => s.trim()).filter(Boolean)
     record.note = (form.get('note') || '').trim()
-    if (imgData) record.imgData = imgData
-    saveRecord(record)
-    navigate(`/foto/${record.id}`)
+    setBusy(true)
+    setError('')
+    try {
+      const saved = await saveRecord(record, file)
+      navigate(`/foto/${saved.id}`)
+    } catch (err) {
+      setError(`Salvataggio non riuscito: ${err.message}`)
+      setBusy(false)
+    }
+  }
+
+  const onDelete = async () => {
+    if (!window.confirm(`Eliminare definitivamente la scheda ${original.id} e le sue immagini?`)) return
+    setBusy(true)
+    try {
+      await deleteRecord(original.id)
+      navigate('/admin')
+    } catch (err) {
+      setError(`Eliminazione non riuscita: ${err.message}`)
+      setBusy(false)
+    }
   }
 
   return (
@@ -83,9 +89,11 @@ export default function AdminEdit() {
         <Link to="/admin" className="btn btn-secondary">&larr; Indietro</Link>
       </div>
 
-      <p className="demo-note">
-        Versione dimostrativa: le modifiche vengono salvate solo in questo browser.
-      </p>
+      {!hasBackend && (
+        <p className="demo-note">
+          Versione dimostrativa: le modifiche vengono salvate solo in questo browser.
+        </p>
+      )}
 
       <form className="detail" onSubmit={onSubmit}>
         <div>
@@ -97,8 +105,11 @@ export default function AdminEdit() {
           </div>
           <div className="form-group" style={{ marginTop: '1rem' }}>
             <label htmlFor="file">{preview ? 'Sostituisci immagine' : 'Carica immagine'}</label>
-            <input type="file" id="file" accept="image/*" onChange={onFile} />
+            <input type="file" id="file" accept="image/jpeg,image/png,image/webp" onChange={onFile} />
           </div>
+          {original.immagini?.length > 1 && (
+            <p className="muted-text">Documento di {original.immagini.length} pagine: la sostituzione riguarda la prima.</p>
+          )}
         </div>
 
         <div className="detail-meta">
@@ -121,9 +132,17 @@ export default function AdminEdit() {
             <textarea id="note" name="note" rows={4} defaultValue={original.note} />
           </div>
 
-          <button type="submit" className="btn">Salva modifiche</button>
+          {error && <p className="form-error" role="alert">{error}</p>}
+
+          <button type="submit" className="btn" disabled={busy}>{busy ? 'Salvataggio…' : 'Salva modifiche'}</button>
           &nbsp;
           <Link to="/admin" className="btn btn-secondary">Annulla</Link>
+          {!isNew && (
+            <>
+              &nbsp;
+              <button type="button" className="btn btn-secondary btn-danger" onClick={onDelete} disabled={busy}>Elimina scheda</button>
+            </>
+          )}
         </div>
       </form>
     </main>

@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getPhotoDetail, imageUrl } from '../data/photos'
+import { getPhotoDetail, imageUrl, pdfUrl } from '../data/photos'
 
 function Field({ label, children }) {
   if (!children || (Array.isArray(children) && children.length === 0)) return null
@@ -21,6 +22,8 @@ function Tags({ campo, values }) {
 export default function Dettaglio() {
   const { id } = useParams()
   const photo = getPhotoDetail(id)
+  const [page, setPage] = useState(0)
+  useEffect(() => setPage(0), [id])
 
   if (!photo) {
     return (
@@ -30,7 +33,9 @@ export default function Dettaglio() {
     )
   }
 
-  const src = imageUrl(photo, 'large')
+  const src = imageUrl(photo, 'large', page)
+  const pdf = pdfUrl(photo)
+  const pages = photo.immagini?.length || 0
   const subtitle = [photo.citta, photo.luogo, photo.data].filter(Boolean).join(' — ')
 
   return (
@@ -40,11 +45,35 @@ export default function Dettaglio() {
       </p>
 
       <article className="detail">
-        <div
-          className={`detail-img thumb-img bg-${(parseInt(photo.id, 10) % 8) + 1}${src ? ' has-img' : ''}`}
-          data-label={src ? '' : 'Immagine in digitalizzazione'}
-        >
-          {src && <img src={src} alt={photo.titolo} />}
+        <div>
+          <div
+            className={`detail-img thumb-img bg-${(parseInt(photo.id, 10) % 8) + 1}${src ? ' has-img' : ''}`}
+            data-label={src ? '' : 'Immagine in digitalizzazione'}
+          >
+            {src && <img src={src} alt={pages > 1 ? `${photo.titolo}, pagina ${page + 1}` : photo.titolo} />}
+          </div>
+
+          {pages > 1 && (
+            <div className="pages">
+              {photo.immagini.map((name, i) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={`pages-thumb${i === page ? ' active' : ''}`}
+                  onClick={() => setPage(i)}
+                  aria-label={`Pagina ${i + 1}`}
+                >
+                  <img src={imageUrl(photo, 'thumbs', i)} alt="" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {pdf && (
+            <p style={{ marginTop: '1rem' }}>
+              <a href={pdf} className="btn btn-secondary" target="_blank" rel="noreferrer">Apri il PDF ({pages} pagine)</a>
+            </p>
+          )}
         </div>
 
         <div className="detail-meta">

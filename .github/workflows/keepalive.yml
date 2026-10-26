@@ -1,0 +1,16 @@
+# Evita che il progetto Supabase gratuito venga messo in pausa dopo 7 giorni senza richieste.
+# Ogni 3 giorni legge una scheda. URL e chiave "anon" sono pubblici (sono già nel sito).
+name: keepalive
+on:
+  schedule:
+    - cron: "0 6 */3 * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ping Supabase
+        run: |
+          set -a; source .env.production 2>/dev/null || true; set +a
+          curl -fsS "$VITE_SUPABASE_URL/rest/v1/schede?select=id&limit=1" -H "apikey: $VITE_SUPABASE_ANON_KEY"
