@@ -1,147 +1,144 @@
-export const recentPhotos = [
-  { id: '0001', bg: 'bg-1', label: 'Forlì, 1944',    caption: "Partigiani della 8ª Brigata Garibaldi · 1944" },
-  { id: '0002', bg: 'bg-2', label: 'Cesena, 1946',   caption: "Manifestazione del 25 aprile · Cesena 1946" },
-  { id: '0003', bg: 'bg-3', label: 'Predappio',      caption: "Predappio, ricostruzione · 1945" },
-  { id: '0004', bg: 'bg-4', label: 'Forlimpopoli',   caption: "Comizio Franco Dell'Amore · 1948" },
-  { id: '0005', bg: 'bg-5', label: 'Savignano',      caption: "Festa dell'Unità · Savignano 1952" },
-  { id: '0006', bg: 'bg-6', label: 'Forlì, 1945',    caption: "Liberazione · Piazza Saffi, Forlì" },
-  { id: '0007', bg: 'bg-7', label: 'Cesenatico',     caption: "Sciopero dei braccianti · 1949" },
-  { id: '0008', bg: 'bg-8', label: 'Bertinoro',      caption: "Ritratto di gruppo · Bertinoro 1947" },
-];
+// Unico punto di accesso ai dati del catalogo.
+// Oggi legge catalogo.json (generato dall'Excel con scripts/build-catalogo.mjs);
+// quando ci sarà il database basterà sostituire queste funzioni con chiamate API.
+import catalogo from './catalogo.json'
 
-export const dellAmorePhotos = [
-  { id: '0042', bg: 'bg-1', label: 'Forlì, 1948',     caption: "Comizio in Piazza Saffi · 1948" },
-  { id: '0043', bg: 'bg-2', label: 'Cesena, 1949',    caption: "Festa dell'Unità · Cesena 1949" },
-  { id: '0044', bg: 'bg-3', label: 'Forlimpopoli',    caption: "Discorso pubblico · Forlimpopoli 1950" },
-  { id: '0045', bg: 'bg-4', label: 'Forlì',           caption: "Ritratto · 1952" },
-  { id: '0046', bg: 'bg-5', label: 'Savignano',       caption: "Manifestazione · Savignano 1953" },
-  { id: '0047', bg: 'bg-6', label: 'Cesenatico',      caption: "Sciopero dei braccianti · 1953" },
-  { id: '0048', bg: 'bg-7', label: 'Predappio',       caption: "Cerimonia commemorativa · 1955" },
-  { id: '0049', bg: 'bg-8', label: 'Forlì',           caption: "Riunione di sezione · 1956" },
-  { id: '0050', bg: 'bg-1', label: 'Bertinoro',       caption: "Festa popolare · Bertinoro 1957" },
-  { id: '0051', bg: 'bg-2', label: 'Forlì',           caption: "Congresso provinciale · 1958" },
-  { id: '0052', bg: 'bg-3', label: 'Cesena',          caption: "Inaugurazione monumento · 1960" },
-  { id: '0053', bg: 'bg-4', label: 'Forlì',           caption: "Ritratto in studio · 1962" },
-];
+const BASE = import.meta.env.BASE_URL
+const EDITS_KEY = 'archivio-modifiche-demo'
 
-export const photoDetails = {
-  '0042': {
-    id: '0042',
-    bg: 'bg-1',
-    label: "Forlì, Piazza Saffi · 1948",
-    titolo: "Comizio in Piazza Saffi",
-    subtitle: "Forlì, 1° maggio 1948 — Franco Dell'Amore",
-    autore: "Dell'Amore, Franco",
-    data: '1948.05.01',
-    luogo: 'Piazza Saffi, Forlì',
-    citta: 'Forlì',
-    evento: 'Festa dei lavoratori',
-    fondo: "Archivio Dell'Amore",
-    serie: 'Manifestazioni politiche',
-    segnatura: 'ISR-FC/AD/MP/0042',
-    tipologia: 'Fotografia',
-    supporto: 'Carta baritata',
-    dimensioni: '18 × 24 cm',
-    orientamento: 'Orizzontale',
-    colore: 'Bianco e nero',
-    persone: ["Franco Dell'Amore", 'Pietro Nenni', 'Giuseppe Romano'],
-    formazione: ['PSI', 'PCI'],
-    parole: ['Primo maggio', 'Comizio', 'Dopoguerra'],
-    note: "Manifestazione organizzata dalla Camera del Lavoro di Forlì in occasione del Primo Maggio 1948.",
-  },
-};
-
-export function getPhotoDetail(id) {
-  return photoDetails[id] || { ...photoDetails['0042'], id, segnatura: `ISR-FC/AD/MP/${id}` };
+// Modifiche fatte dal pannello admin: in questa demo restano solo nel browser
+function loadEdits() {
+  try { return JSON.parse(localStorage.getItem(EDITS_KEY)) || {} } catch { return {} }
 }
 
-export const indexAutori = [
-  { name: 'Anonimo', count: 213 },
-  { name: 'Bianchi, Giovanni', count: 8 },
-  { name: 'Capacci, Mario', count: 15 },
-  { name: 'Casadei, Pietro', count: 22 },
-  { name: "Dell'Amore, Franco", count: 47 },
-  { name: 'Fabbri, Luigi', count: 3 },
-  { name: 'Gardini, Aldo', count: 19 },
-  { name: 'Lombardi, Sergio', count: 11 },
-  { name: 'Mambelli, Carlo', count: 31 },
-  { name: 'Maraldi, Ennio', count: 7 },
-  { name: 'Montanari, Gino', count: 14 },
-  { name: 'Nori, Bruno', count: 2 },
-  { name: 'Olivieri, Renzo', count: 26 },
-  { name: 'Pasolini, Cesare', count: 9 },
-  { name: 'Piancastelli, Bruno', count: 38 },
-  { name: 'Ravaioli, Giuseppe', count: 5 },
-  { name: 'Sangiorgi, Domenico', count: 17 },
-  { name: 'Severi, Antonio', count: 12 },
-  { name: 'Strocchi, Vittorio', count: 4 },
-  { name: 'Tassinari, Marino', count: 21 },
-  { name: 'Valbonesi, Dino', count: 6 },
-  { name: 'Zoli, Adone', count: 10 },
-  { name: 'Zucchini, Mario', count: 3 },
-];
+function allRecords() {
+  const edits = loadEdits()
+  const merged = catalogo.map(r => edits[r.id] ? { ...r, ...edits[r.id] } : r)
+  const nuove = Object.values(edits).filter(e => !catalogo.some(r => r.id === e.id))
+  return [...nuove, ...merged]
+}
 
-export const indexLuoghi = [
-  { name: 'Forlì', count: 312 },
-  { name: 'Cesena', count: 187 },
-  { name: 'Forlimpopoli', count: 54 },
-  { name: 'Bertinoro', count: 38 },
-  { name: 'Savignano sul Rubicone', count: 41 },
-  { name: 'Cesenatico', count: 29 },
-  { name: 'Predappio', count: 26 },
-  { name: 'Meldola', count: 18 },
-  { name: 'Gambettola', count: 12 },
-  { name: 'Modigliana', count: 9 },
-];
+export function saveRecord(record) {
+  const edits = loadEdits()
+  edits[record.id] = record
+  try { localStorage.setItem(EDITS_KEY, JSON.stringify(edits)) } catch { /* storage non disponibile */ }
+}
 
-export const indexData = [
-  { name: '1944', count: 67 },
-  { name: '1945', count: 134 },
-  { name: '1946', count: 89 },
-  { name: '1947', count: 72 },
-  { name: '1948', count: 95 },
-  { name: '1949', count: 81 },
-  { name: '1950', count: 64 },
-  { name: '1951-1955', count: 142 },
-  { name: '1956-1960', count: 78 },
-  { name: '1961-1970', count: 35 },
-];
+export function nextId() {
+  const max = Math.max(...allRecords().map(r => parseInt(r.id, 10) || 0))
+  return String(max + 1).padStart(3, '0')
+}
 
-export const indexPersone = [
-  { name: "Franco Dell'Amore", count: 47 },
-  { name: 'Pietro Nenni', count: 8 },
-  { name: 'Palmiro Togliatti', count: 5 },
-  { name: 'Sandro Pertini', count: 4 },
-  { name: 'Giuseppe Romano', count: 12 },
-  { name: 'Aurelio Saffi', count: 3 },
-  { name: 'Giovanni Amendola', count: 2 },
-];
+export function imageUrl(record, size = 'thumbs') {
+  if (record.imgData) return record.imgData
+  return record.img ? `${BASE}foto/${size}/${record.id}.jpg` : null
+}
 
-export const indexFormazione = [
-  { name: 'PCI', count: 184 },
-  { name: 'PSI', count: 142 },
-  { name: 'DC', count: 67 },
-  { name: 'PRI', count: 38 },
-  { name: 'PSDI', count: 18 },
-  { name: 'PLI', count: 9 },
-];
+function shortPlace(r) {
+  return [r.citta, r.data].filter(Boolean).join(', ')
+}
 
-export const indexParole = [
-  { name: 'Primo maggio', count: 42 },
-  { name: 'Comizio', count: 68 },
-  { name: 'Manifestazione', count: 91 },
-  { name: 'Dopoguerra', count: 156 },
-  { name: 'Liberazione', count: 134 },
-  { name: 'Resistenza', count: 178 },
-  { name: 'Ricostruzione', count: 54 },
-  { name: 'Festa popolare', count: 31 },
-];
+// Forma usata da Thumb e Lightbox
+export function toThumb(r) {
+  return {
+    id: r.id,
+    bg: `bg-${(parseInt(r.id, 10) % 8) + 1}`,
+    label: r.img || r.imgData ? '' : 'Immagine in digitalizzazione',
+    caption: [r.titolo, shortPlace(r)].filter(Boolean).join(' · '),
+    src: imageUrl(r),
+    large: imageUrl(r, 'large'),
+  }
+}
 
-export const indexByCampo = {
-  autore: { titolo: 'Autore', items: indexAutori },
-  luogo: { titolo: 'Città / Luogo', items: indexLuoghi },
-  data: { titolo: 'Data', items: indexData },
-  persone: { titolo: 'Persone', items: indexPersone },
-  formazione: { titolo: 'Formazione politica', items: indexFormazione },
-  parole: { titolo: 'Parole chiave', items: indexParole },
-};
+export const totalCount = catalogo.length
+
+export function getRecords() {
+  return allRecords()
+}
+
+export function getPhotoDetail(id) {
+  return allRecords().find(r => r.id === id) || null
+}
+
+export function recentPhotos() {
+  return allRecords().filter(r => r.img || r.imgData).slice(0, 12).map(toThumb)
+}
+
+export function featuredPhotos(n = 3) {
+  return allRecords().filter(r => r.img && r.serie === 'Fotografie').filter((_, i) => i % 7 === 0).slice(0, n)
+}
+
+const year = (r) => (r.dataOrd || '').slice(0, 4)
+
+const campoValues = {
+  autore: (r) => [r.autore || 'Anonimo'],
+  luogo: (r) => [r.citta, r.luogo].filter(Boolean),
+  data: (r) => year(r) ? [year(r)] : [],
+  persone: (r) => r.persone,
+  formazione: (r) => r.formazione,
+  parole: (r) => r.parole,
+  serie: (r) => [r.serie].filter(Boolean),
+}
+
+const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+export function search(q, campo) {
+  const needle = norm(q)
+  const records = allRecords()
+  let found
+  if (!needle) found = records
+  else if (campo && campoValues[campo]) {
+    found = records.filter(r => campoValues[campo](r).some(v => norm(v) === needle))
+  } else {
+    found = records.filter(r => norm([
+      r.id, r.titolo, r.autore, r.citta, r.luogo, r.evento, r.data, r.serie,
+      ...r.persone, ...r.formazione, ...r.parole,
+    ].join(' ')).includes(needle))
+  }
+  // Prima le schede che hanno già l'immagine online
+  return [...found].sort((a, b) => (b.img ? 1 : 0) - (a.img ? 1 : 0))
+}
+
+// Export con le stesse colonne del catalogo Excel originale.
+// Separatore ";" e BOM UTF-8 così Excel in italiano lo apre direttamente.
+const exportColumns = [
+  ['identificativo', 'id'], ['status', 'status'], ['fondo', 'fondo'], ['serie', 'serie'],
+  ['titolo', 'titolo'], ['autore', 'autore'], ['luogo di stampa', 'luogoStampa'], ['data', 'data'],
+  ['data per ordinamento', 'dataOrd'], ['città', 'citta'], ['luogo', 'luogo'], ['evento', 'evento'],
+  ['formazione politica', 'formazione'], ['persone', 'persone'], ['parole chiave', 'parole'],
+  ['sequenza', 'sequenza'], ['tipologia', 'tipologia'], ['supporto', 'supporto'],
+  ['dimensioni originale', 'dimensioni'], ['orientamento', 'orientamento'], ['colore', 'colore'],
+  ['particolare', 'particolare'], ['fronte retro', 'fronteRetro'], ['pagine', 'pagine'], ['note', 'note'],
+]
+
+export function exportCSV() {
+  const cell = (v) => `"${(Array.isArray(v) ? v.join(' | ') : (v ?? '')).toString().replace(/"/g, '""')}"`
+  const records = [...allRecords()].sort((a, b) => a.id.localeCompare(b.id))
+  const lines = [
+    exportColumns.map(([h]) => cell(h)).join(';'),
+    ...records.map(r => exportColumns.map(([, k]) => cell(r[k])).join(';')),
+  ]
+  return '﻿' + lines.join('\r\n')
+}
+
+const titoli = {
+  autore: 'Autore',
+  luogo: 'Città / Luogo',
+  data: 'Data',
+  persone: 'Persone',
+  formazione: 'Formazione politica',
+  parole: 'Parole chiave',
+}
+
+export function buildIndex(campo) {
+  const key = titoli[campo] ? campo : 'autore'
+  const counts = new Map()
+  for (const r of allRecords()) {
+    for (const v of new Set(campoValues[key](r))) counts.set(v, (counts.get(v) || 0) + 1)
+  }
+  const items = [...counts].map(([name, count]) => ({ name, count }))
+  items.sort(key === 'data'
+    ? (a, b) => a.name.localeCompare(b.name)
+    : (a, b) => b.count - a.count || a.name.localeCompare(b.name, 'it'))
+  return { campo: key, titolo: titoli[key], items }
+}

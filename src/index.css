@@ -1446,3 +1446,46 @@ a:hover { color: var(--accent-dark); text-decoration: underline; text-underline-
 @media (min-width: 769px) {
   .nav-brand { display: none; }
 }
+
+/* Immagini reali del catalogo */
+.thumb-img.has-img::after { content: none; }
+.thumb-img > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.detail-img.has-img {
+  aspect-ratio: auto;
+  align-self: start;
+  background: none;
+}
+.detail-img.has-img > img {
+  height: auto;
+  object-fit: contain;
+}
+.lightbox-img.has-img {
+  aspect-ratio: auto;
+  width: auto;
+  background: none;
+  box-shadow: none;
+}
+.lightbox-img.has-img > img {
+  max-width: 90vw;
+  max-height: 85vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.lightbox-caption a { color: inherit; text-decoration: underline; }
+.banner-slide.has-img {
+  background-size: cover;
+  background-position: center 30%;
+}
+.demo-note {
+  font-size: 0.85rem;
+  color: var(--muted);
+  border-left: 3px solid var(--border);
+  padding: 0.4rem 0.8rem;
+  margin-bottom: 1.5rem;
+}

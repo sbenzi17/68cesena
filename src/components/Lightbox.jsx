@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export default function Lightbox({ photos, index, onClose, onPrev, onNext }) {
   useEffect(() => {
@@ -24,8 +25,11 @@ export default function Lightbox({ photos, index, onClose, onPrev, onNext }) {
   return (
     <div className="lightbox open" onClick={(e) => { if (e.target.classList.contains('lightbox')) onClose() }}>
       <button className="lightbox-prev" aria-label="Precedente" onClick={onPrev}>&larr;</button>
-      <div className={`lightbox-img thumb-img ${photo.bg}`} data-label={photo.label}>
-        <div className="lightbox-caption">{photo.caption}</div>
+      <div className={`lightbox-img thumb-img ${photo.bg}${photo.large ? ' has-img' : ''}`} data-label={photo.label}>
+        {photo.large && <img src={photo.large} alt={photo.caption} />}
+        <div className="lightbox-caption">
+          {photo.caption} · <Link to={`/foto/${photo.id}`} onClick={onClose}>scheda completa</Link>
+        </div>
       </div>
       <button className="lightbox-next" aria-label="Successivo" onClick={onNext}>&rarr;</button>
       <button className="lightbox-close" aria-label="Chiudi" onClick={onClose}>&times;</button>

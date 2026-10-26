@@ -56,7 +56,11 @@ export default function Banner({ slides = defaultSlides }) {
   return (
     <section className="banner" onMouseEnter={stop} onMouseLeave={start}>
       {slides.map((s, i) => (
-        <div key={i} className={`banner-slide ${s.bg}${i === current ? ' active' : ''}`}>
+        <div
+          key={i}
+          className={`banner-slide ${s.bg || 'bg-1'}${s.image ? ' has-img' : ''}${i === current ? ' active' : ''}`}
+          style={s.image ? { backgroundImage: `url(${s.image})` } : undefined}
+        >
           <div className="banner-content">
             <span className="banner-eyebrow">{s.eyebrow}</span>
             <h2>{s.title}</h2>

@@ -8,11 +8,11 @@ export default function Footer() {
           <p className="footer-partners-title">In cerca di collaborazioni con</p>
           <div className="footer-partners-logos">
             <div className="partner-logo">
-              <img src="/logos/comune-cesena.gif" alt="Comune di Cesena" />
+              <img src={`${import.meta.env.BASE_URL}logos/comune-cesena.gif`} alt="Comune di Cesena" />
               <span className="partner-logo-name">Comune di Cesena</span>
             </div>
             <div className="partner-logo">
-              <img src="/logos/biblioteca-malatestiana.png" alt="Biblioteca Malatestiana" />
+              <img src={`${import.meta.env.BASE_URL}logos/biblioteca-malatestiana.png`} alt="Biblioteca Malatestiana" />
               <span className="partner-logo-name">Biblioteca Malatestiana</span>
             </div>
           </div>

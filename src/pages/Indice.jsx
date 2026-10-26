@@ -1,10 +1,9 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { indexByCampo } from '../data/photos'
+import { buildIndex } from '../data/photos'
 
 export default function Indice() {
   const [searchParams] = useSearchParams()
-  const campo = searchParams.get('campo') || 'autore'
-  const data = indexByCampo[campo] || indexByCampo.autore
+  const data = buildIndex(searchParams.get('campo') || 'autore')
 
   return (
     <main className="container">
@@ -16,7 +15,7 @@ export default function Indice() {
       <ul className="index-list">
         {data.items.map((item) => (
           <li key={item.name}>
-            <Link to={`/risultati?campo=${campo}&q=${encodeURIComponent(item.name)}`}>
+            <Link to={`/risultati?campo=${data.campo}&q=${encodeURIComponent(item.name)}`}>
               <span className="index-name">{item.name}</span>
               <span className="index-count">{item.count}</span>
             </Link>

@@ -1,62 +1,97 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { search, imageUrl, getRecords, exportCSV } from '../data/photos'
 
-const rows = [
-  { id: '0042', bg: 'bg-1', titolo: 'Comizio in Piazza Saffi',    autore: "Dell'Amore, Franco",   data: '1948.05.01', luogo: 'Forlì' },
-  { id: '0043', bg: 'bg-2', titolo: "Festa dell'Unità",            autore: 'Mambelli, Carlo',      data: '1949.09.15', luogo: 'Cesena' },
-  { id: '0044', bg: 'bg-3', titolo: 'Discorso pubblico',           autore: 'Piancastelli, Bruno',  data: '1950.04.25', luogo: 'Forlimpopoli' },
-  { id: '0045', bg: 'bg-4', titolo: 'Ritratto',                    autore: "Dell'Amore, Franco",   data: '1952.06.10', luogo: 'Forlì' },
-  { id: '0046', bg: 'bg-5', titolo: 'Manifestazione',              autore: 'Casadei, Pietro',      data: '1953.05.01', luogo: 'Savignano' },
-  { id: '0047', bg: 'bg-6', titolo: 'Sciopero dei braccianti',     autore: 'Olivieri, Renzo',      data: '1953.07.22', luogo: 'Cesenatico' },
-]
+const PAGE = 50
+
+function downloadExport() {
+  const blob = new Blob([exportCSV()], { type: 'text/csv;charset=utf-8' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `catalogo-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
 
 export default function Admin() {
+  const [q, setQ] = useState('')
+  const [shown, setShown] = useState(PAGE)
+  const total = useMemo(() => getRecords().length, [])
+  const rows = useMemo(() => search(q).sort((a, b) => a.id.localeCompare(b.id)), [q])
+
   return (
     <main className="container">
       <div className="admin-toolbar">
         <h1>Fotografie</h1>
-        <Link to="/admin/foto/nuova" className="btn">+ Nuova fotografia</Link>
+        <div>
+          <button type="button" className="btn btn-secondary" onClick={downloadExport}>Esporta catalogo</button>
+          &nbsp;
+          <Link to="/admin/foto/nuova" className="btn">+ Nuova fotografia</Link>
+        </div>
       </div>
+
+      <p className="demo-note">
+        Versione dimostrativa: le modifiche vengono salvate solo in questo browser.
+      </p>
 
       <form style={{ marginBottom: '1.5rem' }} onSubmit={(e) => e.preventDefault()}>
         <input
           type="text"
-          placeholder="Cerca per titolo, autore, segnatura…"
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setShown(PAGE) }}
+          placeholder="Cerca per titolo, autore, persona, identificativo…"
           style={{ width: '100%', padding: '0.6rem 0.8rem', border: '1px solid var(--border)', fontSize: '0.9rem' }}
         />
       </form>
 
-      <table className="table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>ID</th>
-            <th>Titolo</th>
-            <th>Autore</th>
-            <th>Data</th>
-            <th>Luogo</th>
-            <th>Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <td><span className={`table-img thumb-img ${r.bg}`} data-label=""></span></td>
-              <td>{r.id}</td>
-              <td>{r.titolo}</td>
-              <td>{r.autore}</td>
-              <td>{r.data}</td>
-              <td>{r.luogo}</td>
-              <td>
-                <Link to={`/admin/foto/${r.id}`} className="action">Modifica</Link>
-                <a href="#" onClick={(e) => e.preventDefault()} className="action">Elimina</a>
-              </td>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>ID</th>
+              <th>Titolo</th>
+              <th>Serie</th>
+              <th>Autore</th>
+              <th>Data</th>
+              <th>Luogo</th>
+              <th>Azioni</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.slice(0, shown).map((r) => {
+              const src = imageUrl(r)
+              return (
+                <tr key={r.id}>
+                  <td>
+                    <span className={`table-img thumb-img bg-${(parseInt(r.id, 10) % 8) + 1}${src ? ' has-img' : ''}`} data-label="">
+                      {src && <img src={src} alt="" loading="lazy" />}
+                    </span>
+                  </td>
+                  <td>{r.id}</td>
+                  <td>{r.titolo}</td>
+                  <td>{r.serie}</td>
+                  <td>{r.autore}</td>
+                  <td>{r.dataOrd}</td>
+                  <td>{r.citta}</td>
+                  <td>
+                    <Link to={`/admin/foto/${r.id}`} className="action">Modifica</Link>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <p style={{ marginTop: '2rem', fontSize: '0.85rem', color: 'var(--muted)', textAlign: 'center' }}>
-        Mostrando {rows.length} di 779 fotografie
+        Mostrando {Math.min(shown, rows.length)} di {rows.length} {q ? `(su ${total})` : ''} documenti
+        {shown < rows.length && (
+          <>
+            {' · '}
+            <a href="#" onClick={(e) => { e.preventDefault(); setShown(s => s + PAGE) }}>mostra altri</a>
+          </>
+        )}
       </p>
     </main>
   )

@@ -1,9 +1,37 @@
 import { Link, useParams } from 'react-router-dom'
-import { getPhotoDetail } from '../data/photos'
+import { getPhotoDetail, imageUrl } from '../data/photos'
+
+function Field({ label, children }) {
+  if (!children || (Array.isArray(children) && children.length === 0)) return null
+  return (
+    <>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </>
+  )
+}
+
+function Tags({ campo, values }) {
+  if (!values.length) return null
+  return values.map((v) => (
+    <Link key={v} to={`/risultati?campo=${campo}&q=${encodeURIComponent(v)}`} className="tag">{v}</Link>
+  ))
+}
 
 export default function Dettaglio() {
   const { id } = useParams()
   const photo = getPhotoDetail(id)
+
+  if (!photo) {
+    return (
+      <main className="container">
+        <p style={{ marginTop: '2rem' }}>Scheda {id} non trovata. <Link to="/risultati">Torna all'archivio</Link></p>
+      </main>
+    )
+  }
+
+  const src = imageUrl(photo, 'large')
+  const subtitle = [photo.citta, photo.luogo, photo.data].filter(Boolean).join(' — ')
 
   return (
     <main className="container">
@@ -12,78 +40,41 @@ export default function Dettaglio() {
       </p>
 
       <article className="detail">
-        <div className={`detail-img thumb-img ${photo.bg}`} data-label={photo.label}></div>
+        <div
+          className={`detail-img thumb-img bg-${(parseInt(photo.id, 10) % 8) + 1}${src ? ' has-img' : ''}`}
+          data-label={src ? '' : 'Immagine in digitalizzazione'}
+        >
+          {src && <img src={src} alt={photo.titolo} />}
+        </div>
 
         <div className="detail-meta">
           <h2>{photo.titolo}</h2>
-          <p className="detail-subtitle">{photo.subtitle}</p>
+          <p className="detail-subtitle">{subtitle}</p>
 
           <dl>
-            <dt>Identificativo</dt>
-            <dd>{photo.id}</dd>
-
-            <dt>Autore</dt>
-            <dd><Link to={`/risultati?campo=autore&q=${encodeURIComponent(photo.autore)}`}>{photo.autore}</Link></dd>
-
-            <dt>Data</dt>
-            <dd>{photo.data}</dd>
-
-            <dt>Luogo</dt>
-            <dd>{photo.luogo}</dd>
-
-            <dt>Città</dt>
-            <dd><Link to={`/risultati?campo=luogo&q=${encodeURIComponent(photo.citta)}`}>{photo.citta}</Link></dd>
-
-            <dt>Evento</dt>
-            <dd>{photo.evento}</dd>
-
-            <dt>Fondo</dt>
-            <dd>{photo.fondo}</dd>
-
-            <dt>Serie</dt>
-            <dd>{photo.serie}</dd>
-
-            <dt>Segnatura</dt>
-            <dd>{photo.segnatura}</dd>
-
-            <dt>Tipologia</dt>
-            <dd>{photo.tipologia}</dd>
-
-            <dt>Supporto</dt>
-            <dd>{photo.supporto}</dd>
-
-            <dt>Dimensioni</dt>
-            <dd>{photo.dimensioni}</dd>
-
-            <dt>Orientamento</dt>
-            <dd>{photo.orientamento}</dd>
-
-            <dt>Colore</dt>
-            <dd>{photo.colore}</dd>
-
-            <dt>Persone</dt>
-            <dd>
-              {photo.persone.map((p) => (
-                <Link key={p} to={`/risultati?campo=persone&q=${encodeURIComponent(p)}`} className="tag">{p}</Link>
-              ))}
-            </dd>
-
-            <dt>Formazione politica</dt>
-            <dd>
-              {photo.formazione.map((f) => (
-                <Link key={f} to={`/risultati?campo=formazione&q=${encodeURIComponent(f)}`} className="tag">{f}</Link>
-              ))}
-            </dd>
-
-            <dt>Parole chiave</dt>
-            <dd>
-              {photo.parole.map((p) => (
-                <Link key={p} to={`/risultati?campo=parole&q=${encodeURIComponent(p)}`} className="tag">{p}</Link>
-              ))}
-            </dd>
-
-            <dt>Note</dt>
-            <dd>{photo.note}</dd>
+            <Field label="Identificativo">{photo.id}</Field>
+            <Field label="Autore">
+              {photo.autore && <Link to={`/risultati?campo=autore&q=${encodeURIComponent(photo.autore)}`}>{photo.autore}</Link>}
+            </Field>
+            <Field label="Data">{photo.data}</Field>
+            <Field label="Città">
+              {photo.citta && <Link to={`/risultati?campo=luogo&q=${encodeURIComponent(photo.citta)}`}>{photo.citta}</Link>}
+            </Field>
+            <Field label="Luogo">{photo.luogo}</Field>
+            <Field label="Evento">{photo.evento}</Field>
+            <Field label="Fondo">{photo.fondo}</Field>
+            <Field label="Serie">{photo.serie}</Field>
+            <Field label="Luogo di stampa">{photo.luogoStampa}</Field>
+            <Field label="Tipologia">{photo.tipologia}</Field>
+            <Field label="Supporto">{photo.supporto}</Field>
+            <Field label="Dimensioni">{photo.dimensioni}</Field>
+            <Field label="Orientamento">{photo.orientamento}</Field>
+            <Field label="Colore">{photo.colore}</Field>
+            <Field label="Pagine">{photo.pagine}</Field>
+            <Field label="Persone">{photo.persone.length > 0 && <Tags campo="persone" values={photo.persone} />}</Field>
+            <Field label="Formazione politica">{photo.formazione.length > 0 && <Tags campo="formazione" values={photo.formazione} />}</Field>
+            <Field label="Parole chiave">{photo.parole.length > 0 && <Tags campo="parole" values={photo.parole} />}</Field>
+            <Field label="Note">{photo.note}</Field>
           </dl>
         </div>
       </article>
