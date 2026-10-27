@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-export default function Lightbox({ photos, index, onClose, onPrev, onNext }) {
+export default function Lightbox({ photos, index, onClose, onPrev, onNext, link = true }) {
   useEffect(() => {
     if (index == null) return
     const onKey = (e) => {
@@ -28,7 +28,8 @@ export default function Lightbox({ photos, index, onClose, onPrev, onNext }) {
       <div className={`lightbox-img thumb-img ${photo.bg}${photo.large ? ' has-img' : ''}`} data-label={photo.label}>
         {photo.large && <img src={photo.large} alt={photo.caption} />}
         <div className="lightbox-caption">
-          {photo.caption} · <Link to={`/foto/${photo.id}`} onClick={onClose}>scheda completa</Link>
+          {photo.caption}
+          {link && <> · <Link to={`/foto/${photo.id}`} onClick={onClose}>scheda completa</Link></>}
         </div>
       </div>
       <button className="lightbox-next" aria-label="Successivo" onClick={onNext}>&rarr;</button>

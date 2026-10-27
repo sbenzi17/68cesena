@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ScrollToTop from './components/ScrollToTop'
 import PublicLayout from './components/PublicLayout'
 import AuthLayout from './components/AuthLayout'
@@ -15,6 +15,11 @@ import AdminUtenti from './pages/AdminUtenti'
 import Collabora from './pages/Collabora'
 import Contatto from './pages/Contatto'
 import './App.css'
+
+// Ogni salvataggio naviga di nuovo sulla scheda: la chiave nuova ricrea il modulo con i dati appena salvati
+function AdminEditPage() {
+  return <AdminEdit key={useLocation().key} />
+}
 
 export default function App() {
   return (
@@ -36,7 +41,7 @@ export default function App() {
 
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/foto/:id" element={<AdminEdit />} />
+          <Route path="/admin/foto/:id" element={<AdminEditPage />} />
           <Route path="/admin/storico" element={<AdminStorico />} />
           <Route path="/admin/utenti" element={<AdminUtenti />} />
         </Route>

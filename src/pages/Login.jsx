@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase, hasBackend, isAdmin } from '../lib/supabase'
 import { loadCatalogo } from '../data/photos'
+import PasswordInput from '../components/PasswordInput'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -42,7 +43,7 @@ export default function Login() {
 
         <div className="form-group">
           <label htmlFor="password">Password</label>
-          <input type="password" id="password" name="password" required autoComplete="current-password" />
+          <PasswordInput id="password" name="password" required autoComplete="current-password" />
         </div>
 
         {error && <p className="form-error" role="alert">{error}</p>}

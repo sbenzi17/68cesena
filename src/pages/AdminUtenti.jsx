@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, listUsers, createUser, updateUser, removeUser } from '../lib/supabase'
+import PasswordInput from '../components/PasswordInput'
 
 const when = (iso) => iso ? new Date(iso).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' }) : 'mai'
 const field = { padding: '0.55rem 0.75rem', border: '1px solid var(--border)', fontSize: '0.9rem' }
@@ -161,11 +162,11 @@ export default function AdminUtenti() {
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="mia-password">Nuova password</label>
-                <input type="password" id="mia-password" name="password" required autoComplete="new-password" />
+                <PasswordInput id="mia-password" name="password" required autoComplete="new-password" />
               </div>
               <div className="form-group">
                 <label htmlFor="mia-conferma">Ripeti la password</label>
-                <input type="password" id="mia-conferma" name="conferma" required autoComplete="new-password" />
+                <PasswordInput id="mia-conferma" name="conferma" required autoComplete="new-password" />
               </div>
             </div>
             <button type="submit" className="btn" disabled={busyMe}>Cambia password</button>

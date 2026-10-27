@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { search, imageUrl, getRecords, exportCSV } from '../data/photos'
 import { hasBackend } from '../lib/supabase'
+import { formatOrd } from '../data/dates'
 
 const PAGE = 50
 
@@ -78,7 +79,7 @@ export default function Admin() {
                   </td>
                   <td>{r.serie}</td>
                   <td>{r.autore}</td>
-                  <td>{r.dataOrd}</td>
+                  <td>{formatOrd(r.dataOrd)}</td>
                   <td>{r.citta}</td>
                   <td>
                     <Link to={`/admin/foto/${r.id}`} className="action">Modifica</Link>

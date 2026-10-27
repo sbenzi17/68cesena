@@ -1,7 +1,45 @@
-import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getPhotoDetail, imageUrl, saveRecord, deleteRecord, nextId, distinctValues } from '../data/photos'
+import { precisioni, splitOrd, joinOrd, IT_PATTERN } from '../data/dates'
 import { hasBackend } from '../lib/supabase'
+import Lightbox from '../components/Lightbox'
+
+function ZoomIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M20 20l-4.8-4.8M10.5 7.5v6M7.5 10.5h6" />
+    </svg>
+  )
+}
+
+// Campi "Data per ordinamento" (gg/mm/aaaa), "Precisione" e "fino al"
+function DateOrdFields({ value }) {
+  const { data, precisione, fine } = splitOrd(value)
+  const formati = 'gg/mm/aaaa, mm/aaaa oppure aaaa'
+  return (
+    <>
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="dataOrd">Data per ordinamento</label>
+          <input type="text" id="dataOrd" name="dataOrd" defaultValue={data} placeholder="gg/mm/aaaa" pattern={IT_PATTERN} title={formati} />
+        </div>
+        <div className="form-group">
+          <label htmlFor="dataPrecisione">Precisione</label>
+          <select id="dataPrecisione" name="dataPrecisione" defaultValue={precisione}>
+            {precisioni.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="form-group">
+        <label htmlFor="dataFine">Fino al <span className="muted-text">(solo per gli intervalli)</span></label>
+        <input type="text" id="dataFine" name="dataFine" defaultValue={fine} placeholder="gg/mm/aaaa" pattern={IT_PATTERN} title={formati} />
+        <p className="form-helper">Formati: {formati}. Per una cifra dell'anno sconosciuta usa «?», es. 01/05/197?.</p>
+      </div>
+    </>
+  )
+}
 
 const empty = {
   titolo: '', autore: '', data: '', dataOrd: '', citta: 'Cesena', luogo: '', evento: '',
@@ -14,7 +52,7 @@ const sections = [
   ['Descrizione', [
     ['autore', 'Autore', true],
     ['data', 'Data (come scritta sul documento)'],
-    ['dataOrd', 'Data per ordinamento (aaaa.mm.gg)'],
+    ['dataOrd'], // campi dedicati: DateOrdFields
     ['citta', 'Città', true],
     ['luogo', 'Luogo', true],
     ['luogoStampa', 'Luogo di stampa', true],
@@ -33,7 +71,7 @@ const sections = [
     ['sequenza', 'Sequenza'],
   ]],
 ]
-const textFields = sections.flatMap(([, fields]) => fields)
+const textFields = sections.flatMap(([, fields]) => fields).filter(([k]) => k !== 'dataOrd')
 
 const listFields = [
   ['persone', 'Persone'],
@@ -51,12 +89,20 @@ const fromFile = (file) => {
 export default function AdminEdit() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const isNew = id === 'nuova'
   const [original] = useState(() => isNew ? { ...empty, id: nextId() } : getPhotoDetail(id))
   const [pages, setPages] = useState(() => (original?.immagini || []).map(toPage))
   const [selected, setSelected] = useState(0)
+  const [zoom, setZoom] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [saved, setSaved] = useState(Boolean(location.state?.saved))
+  useEffect(() => {
+    if (!saved) return
+    const t = setTimeout(() => setSaved(false), 4000)
+    return () => clearTimeout(t)
+  }, [saved])
   const suggestions = useMemo(
     () => Object.fromEntries(textFields.filter(f => f[2]).map(([k]) => [k, distinctValues(k)])),
     [],
@@ -96,11 +142,20 @@ export default function AdminEdit() {
     for (const [k] of textFields) record[k] = (form.get(k) || '').trim()
     for (const [k] of listFields) record[k] = (form.get(k) || '').split('\n').map(s => s.trim()).filter(Boolean)
     record.note = (form.get('note') || '').trim()
+    const date = joinOrd(form.get('dataOrd'), form.get('dataPrecisione'), form.get('dataFine'))
+    setSaved(false)
+    if (date.error) {
+      setError(date.error)
+      document.getElementById('dataOrd')?.focus()
+      return
+    }
+    record.dataOrd = date.value
     setBusy(true)
     setError('')
     try {
-      const saved = await saveRecord(record, pagesChanged ? pages : undefined)
-      navigate(`/foto/${saved.id}`)
+      const result = await saveRecord(record, pagesChanged ? pages : undefined)
+      // si resta nel pannello: la pagina si ricarica con i dati appena salvati
+      navigate(`/admin/foto/${result.id}`, { replace: isNew, state: { saved: true } })
     } catch (err) {
       setError(`Salvataggio non riuscito: ${err.message}`)
       setBusy(false)
@@ -142,7 +197,14 @@ export default function AdminEdit() {
             className={`detail-img thumb-img bg-${(parseInt(original.id, 10) % 8) + 1}${current ? ' has-img' : ''}`}
             data-label={current ? '' : 'Nessuna immagine'}
           >
-            {current && <img src={current.large} alt="" />}
+            {current && (
+              <>
+                <img src={current.large} alt="" onClick={() => setZoom(pages.indexOf(current))} style={{ cursor: 'zoom-in' }} />
+                <button type="button" className="zoom-btn" onClick={() => setZoom(pages.indexOf(current))} aria-label="Ingrandisci" title="Ingrandisci">
+                  <ZoomIcon />
+                </button>
+              </>
+            )}
           </div>
 
           <h3 className="page-editor-title">Pagine ({pages.length})</h3>
@@ -204,7 +266,7 @@ export default function AdminEdit() {
           {sections.map(([title, fields]) => (
             <fieldset key={title} className="admin-fieldset">
               <legend>{title}</legend>
-              {fields.map(([k, label, suggest]) => (
+              {fields.map(([k, label, suggest]) => k === 'dataOrd' ? <DateOrdFields key={k} value={original.dataOrd} /> : (
                 <div className="form-group" key={k}>
                   <label htmlFor={k}>{label}</label>
                   <input type="text" id={k} name={k} defaultValue={original[k] || ''} list={suggest ? `${k}-valori` : undefined} />
@@ -233,19 +295,35 @@ export default function AdminEdit() {
             <textarea id="note" name="note" rows={4} defaultValue={original.note || ''} />
           </div>
 
-          {error && <p className="form-error" role="alert">{error}</p>}
+        </div>
 
-          <button type="submit" className="btn" disabled={busy}>{busy ? 'Salvataggio…' : 'Salva modifiche'}</button>
-          &nbsp;
-          <Link to="/admin" className="btn btn-secondary">Annulla</Link>
-          {!isNew && (
-            <>
-              &nbsp;
-              <button type="button" className="btn btn-secondary btn-danger" onClick={onDelete} disabled={busy}>Elimina scheda</button>
-            </>
-          )}
+        {/* Barra fissa in fondo allo schermo: le azioni restano sempre a portata di mano */}
+        <div className="admin-actionbar">
+          <div className="container">
+            <div className="admin-actionbar-msg" aria-live="polite">
+              {error && <span className="form-error" role="alert">{error}</span>}
+              {saved && !error && <span className="form-ok">Modifiche salvate.</span>}
+            </div>
+            <div className="admin-actionbar-buttons">
+              {!isNew && (
+                <button type="button" className="btn btn-secondary btn-danger" onClick={onDelete} disabled={busy}>Elimina scheda</button>
+              )}
+              <Link to="/admin" className="btn btn-secondary">Chiudi</Link>
+              {!isNew && <Link to={`/foto/${original.id}`} className="btn btn-secondary">Vedi nel sito</Link>}
+              <button type="submit" className="btn" disabled={busy}>{busy ? 'Salvataggio…' : 'Salva modifiche'}</button>
+            </div>
+          </div>
         </div>
       </form>
+
+      <Lightbox
+        photos={pages.map((p, i) => ({ id: original.id, large: p.large, caption: `Pagina ${i + 1} di ${pages.length}`, bg: '' }))}
+        index={zoom}
+        link={false}
+        onClose={() => setZoom(null)}
+        onPrev={() => setZoom(z => (z - 1 + pages.length) % pages.length)}
+        onNext={() => setZoom(z => (z + 1) % pages.length)}
+      />
     </main>
   )
 }
