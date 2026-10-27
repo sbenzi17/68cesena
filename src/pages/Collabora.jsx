@@ -171,13 +171,13 @@ export default function Collabora() {
 
             <div className="form-group">
               <label htmlFor="descrizione">Descrizione del materiale</label>
-              <textarea id="descrizione" name="descrizione" placeholder="Es. 23 fotografie di mio nonno, fotografo a Forlì negli anni '50, ritratti di famiglia e manifestazioni politiche del dopoguerra…" required />
+              <textarea id="descrizione" name="descrizione" placeholder="Es. 23 fotografie scattate da 'Nome e Cognome' relative a manifestazione politica" required />
             </div>
 
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="periodo">Periodo (orientativo)</label>
-                <input type="text" id="periodo" name="periodo" placeholder="es. 1945-1962" />
+                <input type="text" id="periodo" name="periodo" placeholder="es. 1972-1975" />
               </div>
               <div className="form-group">
                 <label htmlFor="luoghi">Luoghi</label>
@@ -215,19 +215,19 @@ export default function Collabora() {
                 Il sottoscritto, in qualità di legittimo titolare delle fotografie e dei documenti allegati, <strong style={{ display: 'inline', fontSize: 'inherit', textTransform: 'none', letterSpacing: '0', margin: 0 }}>dichiara</strong> di avere acquisito tali materiali per via ereditaria, per acquisto o per produzione propria, e di avere il diritto di disporne.
               </p>
               <p>
-                Con la firma in calce, <strong style={{ display: 'inline', fontSize: 'inherit', textTransform: 'none', letterSpacing: '0', margin: 0 }}>cede a titolo gratuito e non esclusivo</strong> all'Istituto Storico della Resistenza e dell'età contemporanea della provincia di Forlì-Cesena (di seguito "l'Istituto") tutti i diritti patrimoniali sulle opere (riproduzione, comunicazione al pubblico, distribuzione, esposizione, conservazione digitale) per finalità di studio, conservazione, ricerca storica e divulgazione culturale senza limiti di tempo e per il territorio mondiale.
+                Con la firma in calce, <strong style={{ display: 'inline', fontSize: 'inherit', textTransform: 'none', letterSpacing: '0', margin: 0 }}>cede a titolo gratuito e non esclusivo</strong> all'Archivio Fotografico 1968/1977 a Cesena (di seguito "l'Archivio") tutti i diritti patrimoniali sulle opere (riproduzione, comunicazione al pubblico, distribuzione, esposizione, conservazione digitale) per finalità di studio, conservazione, ricerca storica e divulgazione culturale senza limiti di tempo e per il territorio mondiale.
               </p>
               <strong>Diritti morali</strong>
               <p>
-                I diritti morali di autore, ai sensi degli artt. 20–24 della Legge 633/1941, rimangono in capo al sottoscritto o agli autori originari, in quanto inalienabili. L'Istituto si impegna a citare sempre l'autore e la provenienza in ogni utilizzo pubblico.
+                I diritti morali di autore, ai sensi degli artt. 20–24 della Legge 633/1941, rimangono in capo al sottoscritto o agli autori originari, in quanto inalienabili. L'Archivio si impegna a citare sempre l'autore e la provenienza in ogni utilizzo pubblico.
               </p>
               <strong>Garanzia di originalità</strong>
               <p>
-                Il sottoscritto garantisce che il materiale è originale, che non viola diritti di terzi e tiene indenne l'Istituto da qualsiasi rivendicazione di terzi.
+                Il sottoscritto garantisce che il materiale è originale, che non viola diritti di terzi e tiene indenne l'Archivio da qualsiasi rivendicazione di terzi.
               </p>
               <strong>Trattamento dei dati personali (Reg. UE 2016/679 — GDPR)</strong>
               <p>
-                I dati anagrafici e il documento d'identità sono trattati esclusivamente per verificare la titolarità della donazione e per gli adempimenti di legge. Conservazione: 10 anni. Titolare del trattamento: Istituto Storico della Resistenza FC. Hai diritto di accedere, rettificare e richiedere la cancellazione dei tuoi dati scrivendo a privacy@isrfc.it.
+                I dati anagrafici e il documento d'identità sono trattati esclusivamente per verificare la titolarità della donazione e per gli adempimenti di legge. Conservazione: 10 anni. Titolare del trattamento: Archivio Fotografico 1968/1977 a Cesena. Hai diritto di accedere, rettificare e richiedere la cancellazione dei tuoi dati scrivendo a benzi580@gmail.com.
               </p>
             </div>
 
@@ -237,7 +237,7 @@ export default function Collabora() {
             </label>
             <label className="checkbox-row">
               <input type="checkbox" checked={consent2} onChange={(e) => setConsent2(e.target.checked)} />
-              <span>Cedo all'Istituto i diritti patrimoniali sulle opere come specificato sopra, mantenendo i diritti morali di autore.</span>
+              <span>Cedo all'Archivio i diritti patrimoniali sulle opere come specificato sopra, mantenendo i diritti morali di autore.</span>
             </label>
             <label className="checkbox-row">
               <input type="checkbox" checked={consent3} onChange={(e) => setConsent3(e.target.checked)} />
