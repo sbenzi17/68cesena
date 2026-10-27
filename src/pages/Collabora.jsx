@@ -60,7 +60,7 @@ export default function Collabora() {
       <section className="collabora-intro container">
         <h1>Collabora con noi</h1>
         <p>
-          Hai fotografie storiche relative alla Resistenza, al dopoguerra o alla vita della provincia di Forlì-Cesena?
+          Hai fotografie storiche o documenti relativi ai movimenti politici e alle lotte studentesche del periodo 1968-1977 a Cesena?
           Donale all'archivio per renderle accessibili a tutti, nel rispetto della tua identità di autore e dei diritti di copyright.
         </p>
       </section>
