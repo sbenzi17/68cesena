@@ -1,6 +1,7 @@
 // Cloudflare Worker al servizio del pannello admin:
 // - /?key=...   legge, carica ed elimina file nel bucket R2
 // - /utenti     elenca, crea, modifica ed elimina gli amministratori (usa la chiave service_role di Supabase)
+// - /storico/ID elimina una riga dello storico delle modifiche
 // Le scritture sono permesse solo a utenti con login Supabase presenti nella tabella `admin`.
 // Le immagini per il pubblico si leggono direttamente dall'URL pubblico del bucket, non da qui.
 
@@ -129,6 +130,15 @@ async function utenti(request, env, url) {
   return reply(env, 405, { error: 'metodo non ammesso' })
 }
 
+// Elimina una riga dello storico (la tabella è in sola lettura per gli admin, quindi passa da qui)
+async function storico(request, env, url) {
+  if (!(await adminId(request, env))) return reply(env, 401, { error: 'non autorizzato' })
+  const id = url.pathname.split('/')[2] || ''
+  if (request.method !== 'DELETE' || !/^\d+$/.test(id)) return reply(env, 400, { error: 'richiesta non valida' })
+  await service(env, `/rest/v1/schede_storico?id=eq.${id}`, 'DELETE')
+  return reply(env, 200, { ok: true })
+}
+
 export default {
   async fetch(request, workerEnv) {
     const env = { ...workerEnv, ORIGIN: request.headers.get('Origin') || '' }
@@ -136,6 +146,7 @@ export default {
     const url = new URL(request.url)
     try {
       if (url.pathname.startsWith('/utenti')) return await utenti(request, env, url)
+      if (url.pathname.startsWith('/storico/')) return await storico(request, env, url)
       return await files(request, env, url)
     } catch (err) {
       return reply(env, 500, { error: err.message })

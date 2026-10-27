@@ -62,3 +62,6 @@ export const listUsers = () => worker('/utenti')
 export const createUser = (u) => worker('/utenti', { method: 'POST', body: JSON.stringify(u), contentType: 'application/json' })
 export const updateUser = (id, changes) => worker(`/utenti/${id}`, { method: 'PATCH', body: JSON.stringify(changes), contentType: 'application/json' })
 export const removeUser = (id) => worker(`/utenti/${id}`, { method: 'DELETE' })
+
+// Righe dello storico: si eliminano solo passando dal Worker
+export const deleteStoricoRow = (id) => worker(`/storico/${id}`, { method: 'DELETE' })

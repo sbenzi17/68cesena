@@ -1561,7 +1561,31 @@ button.action {
   margin-bottom: 0.6rem;
 }
 .storico-head time { color: var(--muted); font-size: 0.85rem; }
-.storico-head .storico-actions { margin-left: auto; }
+.storico-head .storico-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(26,20,16,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.confirm-dialog {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  max-width: 460px;
+  width: 100%;
+  padding: 1.5rem 1.75rem;
+}
+.confirm-dialog h2 { font-size: 1.5rem; margin-bottom: 0.75rem; }
+.confirm-body p { margin-bottom: 0.6rem; font-size: 0.95rem; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem; }
+.btn-danger-solid { background: #9b1c1c; border-color: #9b1c1c; }
+.btn-danger-solid:hover { background: #7a1515; border-color: #7a1515; }
 .storico-diff { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .storico-diff th { text-align: left; font-weight: 500; color: var(--muted); width: 22%; vertical-align: top; padding: 0.3rem 0.5rem 0.3rem 0; }
 .storico-diff td { vertical-align: top; padding: 0.3rem 0.5rem; width: 39%; overflow-wrap: anywhere; }

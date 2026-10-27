@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { loadStorico, restoreStorico, getPhotoDetail } from '../data/photos'
-import { listUsers } from '../lib/supabase'
+import { listUsers, deleteStoricoRow } from '../lib/supabase'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const PAGE = 50
 
@@ -53,10 +54,11 @@ export default function AdminStorico() {
   const scheda = params.get('scheda') || ''
   const [entries, setEntries] = useState([])
   const [more, setMore] = useState(false)
-  const [names, setNames] = useState({})
+  const [names, setNames] = useState(null) // null finché l'elenco degli utenti non è arrivato
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [toDelete, setToDelete] = useState(null)
 
   const load = async (from = 0) => {
     setError('')
@@ -73,10 +75,10 @@ export default function AdminStorico() {
   useEffect(() => {
     listUsers()
       .then(({ utenti }) => setNames(Object.fromEntries(utenti.map(u => [u.id, u.nome || u.email]))))
-      .catch(() => {})
+      .catch(() => setNames({}))
   }, [])
 
-  const who = (uid) => uid ? names[uid] || 'utente rimosso' : 'importazione iniziale'
+  const who = (uid) => !uid ? 'importazione iniziale' : !names ? '…' : names[uid] || 'utente rimosso'
 
   const restore = async (entry) => {
     const current = getPhotoDetail(entry.scheda_id)
@@ -93,6 +95,21 @@ export default function AdminStorico() {
     } catch (err) {
       setError(`Ripristino non riuscito: ${err.message}`)
     }
+    setBusy(false)
+  }
+
+  const confirmDelete = async () => {
+    setBusy(true)
+    setMessage('')
+    setError('')
+    try {
+      await deleteStoricoRow(toDelete.id)
+      setEntries(prev => prev.filter(e => e.id !== toDelete.id))
+      setMessage(`Riga dello storico della scheda ${toDelete.scheda_id} eliminata.`)
+    } catch (err) {
+      setError(`Eliminazione non riuscita: ${err.message}`)
+    }
+    setToDelete(null)
     setBusy(false)
   }
 
@@ -129,13 +146,16 @@ export default function AdminStorico() {
               <Link to={`/admin/foto/${e.scheda_id}`}>Scheda {e.scheda_id}</Link>
               <span>{who(e.utente)}</span>
               <time dateTime={e.quando}>{when(e.quando)}</time>
-              {canRestore && (
-                <span className="storico-actions">
+              <span className="storico-actions">
+                {canRestore && (
                   <button type="button" className="btn btn-secondary" onClick={() => restore(e)} disabled={busy}>
                     {e.azione === 'INSERT' ? 'Annulla creazione' : 'Ripristina com\'era prima'}
                   </button>
-                </span>
-              )}
+                )}
+                <button type="button" className="btn btn-secondary btn-danger" onClick={() => setToDelete(e)} disabled={busy} title="Elimina questa riga dello storico">
+                  Elimina riga
+                </button>
+              </span>
             </div>
             <Diff entry={e} />
           </article>
@@ -143,6 +163,26 @@ export default function AdminStorico() {
       })}
 
       {!entries.length && !error && <p className="muted-text">Nessuna modifica registrata.</p>}
+      <ConfirmDialog
+        open={Boolean(toDelete)}
+        title="Sei sicuro?"
+        confirmLabel="Sì, elimina"
+        danger
+        busy={busy}
+        onConfirm={confirmDelete}
+        onCancel={() => setToDelete(null)}
+      >
+        {toDelete && (
+          <>
+            <p>
+              Stai per eliminare la riga «{(azioni[toDelete.azione] || [toDelete.azione])[0]}» della scheda {toDelete.scheda_id}
+              {' '}del {when(toDelete.quando)} ({who(toDelete.utente)}).
+            </p>
+            <p>La scheda non cambia, ma questa modifica non si potrà più ripristinare. L'operazione è definitiva.</p>
+          </>
+        )}
+      </ConfirmDialog>
+
       {more && (
         <p style={{ textAlign: 'center' }}>
           <button type="button" className="btn btn-secondary" onClick={() => load(entries.length)}>Mostra altre</button>
