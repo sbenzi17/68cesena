@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { supabase, hasBackend } from '../lib/supabase'
 
 export default function AdminHeader() {
@@ -17,11 +17,13 @@ export default function AdminHeader() {
           Pannello di amministrazione
           <small>Archivio Fotografico</small>
         </div>
-        <div>
+        <nav className="admin-nav">
+          <NavLink to="/admin" end>Schede</NavLink>
+          {hasBackend && <NavLink to="/admin/storico">Storico</NavLink>}
+          {hasBackend && <NavLink to="/admin/utenti">Utenti</NavLink>}
           <Link to="/">Sito pubblico</Link>
-          &nbsp;·&nbsp;
           <a href="#" onClick={logout}>Esci</a>
-        </div>
+        </nav>
       </div>
     </header>
   )

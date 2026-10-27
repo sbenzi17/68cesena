@@ -8,9 +8,10 @@ import Indice from './pages/Indice'
 import Risultati from './pages/Risultati'
 import Dettaglio from './pages/Dettaglio'
 import Login from './pages/Login'
-import Registro from './pages/Registro'
 import Admin from './pages/Admin'
 import AdminEdit from './pages/AdminEdit'
+import AdminStorico from './pages/AdminStorico'
+import AdminUtenti from './pages/AdminUtenti'
 import Collabora from './pages/Collabora'
 import Contatto from './pages/Contatto'
 import './App.css'
@@ -31,12 +32,13 @@ export default function App() {
 
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Registro />} />
         </Route>
 
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/foto/:id" element={<AdminEdit />} />
+          <Route path="/admin/storico" element={<AdminStorico />} />
+          <Route path="/admin/utenti" element={<AdminUtenti />} />
         </Route>
       </Routes>
     </BrowserRouter>

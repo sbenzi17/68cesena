@@ -2,7 +2,10 @@
 // Con Supabase configurato (.env.production) legge e scrive sul database e le immagini stanno su R2;
 // altrimenti usa catalogo.json e salva le modifiche solo nel browser (modalità demo).
 // Il catalogo viene caricato tutto all'avvio (loadCatalogo) e poi filtrato in memoria.
-import { supabase, hasBackend, IMG_BASE, uploadFile, deleteFile } from '../lib/supabase'
+import { supabase, hasBackend, IMG_BASE, uploadFile, fetchFile } from '../lib/supabase'
+
+// pdf-lib si scarica solo quando serve rigenerare un PDF
+const PDF_LIB = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm'
 
 const BASE = import.meta.env.BASE_URL
 const EDITS_KEY = 'archivio-modifiche-demo'
@@ -79,20 +82,63 @@ const blobToDataUrl = (blob) => new Promise((resolve) => {
   reader.readAsDataURL(blob)
 })
 
-// Salva una scheda; `file` (facoltativo) è la nuova immagine principale
-export async function saveRecord(record, file) {
+// Nomi sempre nuovi per i file caricati: le versioni precedenti restano su R2 e lo storico può ripristinarle
+const uniqueName = (id) => `${id}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
+
+// PDF con una pagina per immagine: larghezza A4, altezza proporzionale (come scripts/bollettini-pdf.mjs)
+async function buildPdf(names, blobs) {
+  const { PDFDocument } = await import(/* @vite-ignore */ PDF_LIB)
+  const doc = await PDFDocument.create()
+  for (const name of names) {
+    const blob = blobs[name] || await fetchFile(`large/${name}.jpg`)
+    const img = await doc.embedJpg(await blob.arrayBuffer())
+    const width = 595.28
+    const height = width * img.height / img.width
+    doc.addPage([width, height]).drawImage(img, { x: 0, y: 0, width, height })
+  }
+  return new Blob([await doc.save()], { type: 'application/pdf' })
+}
+
+// Niente upsert: il trigger dello storico registrerebbe anche una creazione fittizia a ogni modifica
+function writeRow(row, exists) {
+  const query = exists
+    ? supabase.from('schede').update(row).eq('id', row.id)
+    : supabase.from('schede').insert(row)
+  return query.select().single()
+}
+
+// Salva una scheda. `pages` (facoltativo) è l'elenco ordinato delle pagine:
+// { name } per un'immagine già online, { file } per una nuova da caricare.
+export async function saveRecord(record, pages) {
   const r = { ...record }
   if (hasBackend) {
-    if (file) {
-      const name = r.immagini?.[0] || r.id
-      await uploadFile(`thumbs/${name}.jpg`, await resizeImage(file, 600, 0.75))
-      await uploadFile(`large/${name}.jpg`, await resizeImage(file, 1600, 0.82))
-      r.immagini = r.immagini?.length ? r.immagini : [name]
+    if (pages) {
+      const names = []
+      const blobs = {}
+      for (const p of pages) {
+        if (!p.file) { names.push(p.name); continue }
+        const name = uniqueName(r.id)
+        blobs[name] = await resizeImage(p.file, 1600, 0.82)
+        await uploadFile(`thumbs/${name}.jpg`, await resizeImage(p.file, 600, 0.75))
+        await uploadFile(`large/${name}.jpg`, blobs[name])
+        names.push(name)
+      }
+      const before = record.immagini || []
+      if (names.join() !== before.join()) {
+        if (r.pagine === String(before.length) || (!r.pagine && names.length > 1)) r.pagine = String(names.length)
+        r.immagini = names
+        if (!names.length) r.pdf = null
+        else if (r.pdf || r.serie === 'Bollettini') {
+          r.pdf = `${uniqueName(r.id)}.pdf`
+          await uploadFile(`pdf/${r.pdf}`, await buildPdf(names, blobs))
+        }
+      }
     }
-    const { data, error } = await supabase.from('schede').upsert(toDb(r)).select().single()
+    const { data, error } = await writeRow(toDb(r), Boolean(getPhotoDetail(r.id)))
     if (error) throw error
     Object.assign(r, fromDb(data))
   } else {
+    const file = pages?.find(p => p.file)?.file
     if (file) r.imgData = await blobToDataUrl(await resizeImage(file, 1200, 0.8))
     const edits = loadEdits()
     edits[r.id] = r
@@ -104,17 +150,12 @@ export async function saveRecord(record, file) {
   return r
 }
 
+// Le immagini restano su R2, così dallo storico si può ripristinare la scheda eliminata
 export async function deleteRecord(id) {
-  const r = getPhotoDetail(id)
-  if (!r) return
+  if (!getPhotoDetail(id)) return
   if (hasBackend) {
     const { error } = await supabase.from('schede').delete().eq('id', id)
     if (error) throw error
-    for (const name of r.immagini || []) {
-      await deleteFile(`thumbs/${name}.jpg`)
-      await deleteFile(`large/${name}.jpg`)
-    }
-    if (r.pdf) await deleteFile(`pdf/${r.pdf}`)
   } else {
     const edits = loadEdits()
     delete edits[id]
@@ -233,6 +274,35 @@ export function exportCSV() {
     ...records.map(r => exportColumns.map(([, k]) => cell(r[k])).join(';')),
   ]
   return '﻿' + lines.join('\r\n')
+}
+
+// Valori già usati in un campo, per i suggerimenti del modulo admin
+export function distinctValues(key) {
+  const values = new Set()
+  for (const r of allRecords()) for (const v of [].concat(r[key] ?? [])) if (v) values.add(v)
+  return [...values].sort((a, b) => a.localeCompare(b, 'it'))
+}
+
+// Storico delle modifiche, scritto dal database a ogni salvataggio (solo con Supabase)
+export async function loadStorico({ schedaId, from = 0, size = 50 } = {}) {
+  let query = supabase.from('schede_storico').select('*').order('id', { ascending: false }).range(from, from + size - 1)
+  if (schedaId) query = query.eq('scheda_id', schedaId)
+  const { data, error } = await query
+  if (error) throw error
+  return data
+}
+
+// Riporta la scheda com'era prima della modifica: una creazione si annulla eliminando, un'eliminazione ricreando
+export async function restoreStorico(entry) {
+  if (entry.azione === 'INSERT') {
+    const { error } = await supabase.from('schede').delete().eq('id', entry.scheda_id)
+    if (error) throw error
+  } else {
+    const { updated_at, ...row } = entry.prima
+    const { error } = await writeRow(row, Boolean(getPhotoDetail(entry.scheda_id)))
+    if (error) throw error
+  }
+  await loadCatalogo()
 }
 
 const titoli = {

@@ -23,11 +23,11 @@ export default function Admin() {
   return (
     <main className="container">
       <div className="admin-toolbar">
-        <h1>Fotografie</h1>
+        <h1>Schede</h1>
         <div>
           <button type="button" className="btn btn-secondary" onClick={downloadExport}>Esporta catalogo</button>
           &nbsp;
-          <Link to="/admin/foto/nuova" className="btn">+ Nuova fotografia</Link>
+          <Link to="/admin/foto/nuova" className="btn">+ Nuova scheda</Link>
         </div>
       </div>
 
@@ -72,13 +72,17 @@ export default function Admin() {
                     </span>
                   </td>
                   <td>{r.id}</td>
-                  <td>{r.titolo}</td>
+                  <td>
+                    {r.titolo}
+                    {r.status && r.status !== 'ok' && <> <span className="badge badge-warn">{r.status}</span></>}
+                  </td>
                   <td>{r.serie}</td>
                   <td>{r.autore}</td>
                   <td>{r.dataOrd}</td>
                   <td>{r.citta}</td>
                   <td>
                     <Link to={`/admin/foto/${r.id}`} className="action">Modifica</Link>
+                    {hasBackend && <>{' · '}<Link to={`/admin/storico?scheda=${r.id}`} className="action">Storico</Link></>}
                   </td>
                 </tr>
               )

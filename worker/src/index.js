@@ -1,14 +1,20 @@
-// Cloudflare Worker: carica ed elimina file nel bucket R2 per conto del pannello admin.
-// Accetta solo utenti che hanno fatto login su Supabase e che sono nella tabella `admin`.
-// Le immagini si leggono direttamente dall'URL pubblico del bucket, non da qui.
+// Cloudflare Worker al servizio del pannello admin:
+// - /?key=...   legge, carica ed elimina file nel bucket R2
+// - /utenti     elenca, crea, modifica ed elimina gli amministratori (usa la chiave service_role di Supabase)
+// Le scritture sono permesse solo a utenti con login Supabase presenti nella tabella `admin`.
+// Le immagini per il pubblico si leggono direttamente dall'URL pubblico del bucket, non da qui.
 
 const KEY_RE = /^(thumbs|large|pdf)\/[A-Za-z0-9._-]+\.(jpg|pdf)$/
 const MAX_BYTES = 25 * 1024 * 1024
 
+// ALLOWED_ORIGIN può elencare più indirizzi separati da virgola (il sito e le prove in locale);
+// env.ORIGIN è l'origine della richiesta in corso
 function cors(env) {
+  const allowed = env.ALLOWED_ORIGIN.split(',').map(s => s.trim())
   return {
-    'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods': 'PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Origin': allowed.includes(env.ORIGIN) ? env.ORIGIN : allowed[0],
+    Vary: 'Origin',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
     'Access-Control-Max-Age': '86400',
   }
@@ -21,38 +27,118 @@ function reply(env, status, body) {
   })
 }
 
-async function isAdmin(request, env) {
+// Restituisce l'id dell'utente se è un amministratore, altrimenti null
+async function adminId(request, env) {
   const auth = request.headers.get('Authorization') || ''
-  if (!auth.startsWith('Bearer ')) return false
+  if (!auth.startsWith('Bearer ')) return null
   const headers = { apikey: env.SUPABASE_ANON_KEY, Authorization: auth }
   const user = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, { headers })
-  if (!user.ok) return false
+  if (!user.ok) return null
   const { id } = await user.json()
   const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/admin?select=user_id&user_id=eq.${id}`, { headers })
-  return rows.ok && (await rows.json()).length === 1
+  return rows.ok && (await rows.json()).length === 1 ? id : null
+}
+
+// Chiamata a Supabase con la chiave service_role (solo dentro il Worker)
+async function service(env, path, method = 'GET', body) {
+  const res = await fetch(`${env.SUPABASE_URL}${path}`, {
+    method,
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: body && JSON.stringify(body),
+  })
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : null
+  if (!res.ok) throw new Error(data?.msg || data?.message || data?.error_description || `errore ${res.status}`)
+  return data
+}
+
+async function files(request, env, url) {
+  const key = url.searchParams.get('key') || ''
+  if (!KEY_RE.test(key)) return reply(env, 400, { error: 'chiave non valida' })
+
+  // Lettura libera (i file sono comunque pubblici): serve al pannello per rigenerare i PDF
+  if (request.method === 'GET') {
+    const obj = await env.BUCKET.get(key)
+    if (!obj) return reply(env, 404, { error: 'file non trovato' })
+    return new Response(obj.body, { headers: { 'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream', ...cors(env) } })
+  }
+
+  if (!(await adminId(request, env))) return reply(env, 401, { error: 'non autorizzato' })
+
+  if (request.method === 'PUT') {
+    const size = Number(request.headers.get('Content-Length') || 0)
+    if (size > MAX_BYTES) return reply(env, 413, { error: 'file troppo grande' })
+    const contentType = key.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'
+    await env.BUCKET.put(key, request.body, { httpMetadata: { contentType, cacheControl: 'public, max-age=86400' } })
+    return reply(env, 200, { ok: true, key })
+  }
+
+  if (request.method === 'DELETE') {
+    await env.BUCKET.delete(key)
+    return reply(env, 200, { ok: true, key })
+  }
+
+  return reply(env, 405, { error: 'metodo non ammesso' })
+}
+
+async function utenti(request, env, url) {
+  const me = await adminId(request, env)
+  if (!me) return reply(env, 401, { error: 'non autorizzato' })
+  const id = url.pathname.split('/')[2] || ''
+  if (id && !/^[0-9a-f-]{36}$/.test(id)) return reply(env, 400, { error: 'utente non valido' })
+  const body = ['POST', 'PATCH'].includes(request.method) ? await request.json() : {}
+  if (body.password !== undefined && String(body.password).length < 8) {
+    return reply(env, 400, { error: 'la password deve avere almeno 8 caratteri' })
+  }
+
+  if (request.method === 'GET' && !id) {
+    const admins = await service(env, '/rest/v1/admin?select=user_id,nome')
+    const list = await Promise.all(admins.map(async (a) => {
+      const u = await service(env, `/auth/v1/admin/users/${a.user_id}`).catch(() => ({}))
+      return { id: a.user_id, nome: a.nome, email: u.email, ultimoAccesso: u.last_sign_in_at, creato: u.created_at }
+    }))
+    return reply(env, 200, { me, utenti: list })
+  }
+
+  if (request.method === 'POST' && !id) {
+    const nome = String(body.nome || '').trim()
+    const email = String(body.email || '').trim().toLowerCase()
+    if (!nome || !email || !body.password) return reply(env, 400, { error: 'nome, email e password sono obbligatori' })
+    const user = await service(env, '/auth/v1/admin/users', 'POST', { email, password: body.password, email_confirm: true })
+    await service(env, '/rest/v1/admin', 'POST', { user_id: user.id, nome })
+    return reply(env, 200, { ok: true, id: user.id })
+  }
+
+  if (request.method === 'PATCH' && id) {
+    if (body.password) await service(env, `/auth/v1/admin/users/${id}`, 'PUT', { password: body.password })
+    if (body.nome) await service(env, `/rest/v1/admin?user_id=eq.${id}`, 'PATCH', { nome: String(body.nome).trim() })
+    return reply(env, 200, { ok: true })
+  }
+
+  if (request.method === 'DELETE' && id) {
+    if (id === me) return reply(env, 400, { error: 'non puoi eliminare il tuo stesso account' })
+    await service(env, `/auth/v1/admin/users/${id}`, 'DELETE') // la riga in `admin` si cancella a cascata
+    return reply(env, 200, { ok: true })
+  }
+
+  return reply(env, 405, { error: 'metodo non ammesso' })
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, workerEnv) {
+    const env = { ...workerEnv, ORIGIN: request.headers.get('Origin') || '' }
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors(env) })
-
-    const key = new URL(request.url).searchParams.get('key') || ''
-    if (!KEY_RE.test(key)) return reply(env, 400, { error: 'chiave non valida' })
-    if (!(await isAdmin(request, env))) return reply(env, 401, { error: 'non autorizzato' })
-
-    if (request.method === 'PUT') {
-      const size = Number(request.headers.get('Content-Length') || 0)
-      if (size > MAX_BYTES) return reply(env, 413, { error: 'file troppo grande' })
-      const contentType = key.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'
-      await env.BUCKET.put(key, request.body, { httpMetadata: { contentType, cacheControl: 'public, max-age=86400' } })
-      return reply(env, 200, { ok: true, key })
+    const url = new URL(request.url)
+    try {
+      if (url.pathname.startsWith('/utenti')) return await utenti(request, env, url)
+      return await files(request, env, url)
+    } catch (err) {
+      return reply(env, 500, { error: err.message })
     }
-
-    if (request.method === 'DELETE') {
-      await env.BUCKET.delete(key)
-      return reply(env, 200, { ok: true, key })
-    }
-
-    return reply(env, 405, { error: 'metodo non ammesso' })
   },
 }

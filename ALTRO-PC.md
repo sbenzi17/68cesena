@@ -13,8 +13,12 @@ Situazione al 27/10/2026: il sito è online e collegato al database.
 ## 1. Per modificare o aggiungere schede: niente da installare
 1. Apri il sito e clicca **Area riservata**.
 2. Entra con l'email e la password dell'utente admin creato su Supabase.
-3. Modifica, aggiungi foto o elimina schede: tutto viene salvato subito online, da qualsiasi computer.
+3. Tutto viene salvato subito online, da qualsiasi computer.
+   - **Schede**: modifica di tutti i campi; persone, formazioni e parole chiave si scrivono una per riga. Si possono aggiungere, togliere, riordinare e sostituire le pagine. Per i Bollettini il PDF si rigenera da solo. Con lo stato «Sospesa» la scheda resta visibile solo agli admin.
+   - **Storico**: chi ha cambiato cosa e quando, con il prima e il dopo. Il pulsante «Ripristina» riporta la scheda com'era, anche se era stata eliminata.
+   - **Utenti**: per aggiungere o togliere amministratori e reimpostare la password di un altro admin. Nella sezione «Il mio account» cambi la tua password.
 4. Il pulsante **Esporta catalogo** scarica un CSV con le stesse colonne dell'Excel.
+5. Password dimenticata: un altro admin la reimposta dalla pagina **Utenti**. Se sei l'unico admin, fallo da Supabase: Authentication → Users → utente → Reset password.
 
 **Il database è il master.** Le correzioni non si fanno più sull'Excel. Non rilanciare `scripts/importa-supabase.mjs`, perché sovrascriverebbe le modifiche fatte dall'admin.
 
@@ -45,8 +49,9 @@ R2_ACCOUNT_ID=8efd28413561fa9f1a79b711ae50566c
 R2_ACCESS_KEY_ID=...            (Cloudflare → R2 → Manage API tokens; se l'hai persa, crea un token nuovo)
 R2_SECRET_ACCESS_KEY=...
 R2_BUCKET=archivio-foto
+CLOUDFLARE_API_TOKEN=...        (Cloudflare → Manage Account → Account API Tokens → modello "Edit Cloudflare Workers")
 ```
-Per il Worker: `cd worker`, poi `npx wrangler login` e `npx wrangler deploy`.
+Per ripubblicare il Worker: `node scripts/pubblica-worker.mjs`. Lo script imposta anche la chiave service_role nel Worker, che serve alla pagina Utenti.
 
 ## 4. Il sito resta sempre online?
 Sì. Nessuna chiave usata dal sito scade a breve. Ci sono due cose da sapere:

@@ -51,8 +51,8 @@ export default function Login() {
           {busy ? 'Accesso in corso…' : 'Accedi'}
         </button>
 
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem' }}>
-          Non hai un account? <Link to="/registro">Registrati</Link>
+        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--muted)' }}>
+          Password dimenticata? Chiedi a un altro amministratore di reimpostarla dal pannello.
         </p>
         <p style={{ textAlign: 'center', marginTop: '0.5rem', fontSize: '0.85rem' }}>
           <Link to="/">&larr; Torna al sito</Link>

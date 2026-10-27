@@ -20,21 +20,45 @@ export async function isAdmin() {
   return data?.length === 1
 }
 
-// Carica un file nel bucket tramite il Worker (solo admin)
-export async function uploadFile(key, blob) {
+export async function currentUserId() {
   const { data: { session } } = await supabase.auth.getSession()
-  const res = await fetch(`${WORKER_URL}?key=${encodeURIComponent(key)}`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': blob.type },
-    body: blob,
-  })
-  if (!res.ok) throw new Error(`Caricamento di ${key} non riuscito (${res.status})`)
+  return session?.user.id || null
 }
 
-export async function deleteFile(key) {
+// Chiamata al Worker con il login dell'admin; restituisce il JSON o lancia l'errore spiegato dal Worker
+async function worker(path, { method = 'GET', body, contentType } = {}) {
   const { data: { session } } = await supabase.auth.getSession()
-  await fetch(`${WORKER_URL}?key=${encodeURIComponent(key)}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${session.access_token}` },
+  const res = await fetch(`${WORKER_URL}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${session?.access_token}`,
+      ...(contentType && { 'Content-Type': contentType }),
+    },
+    body,
   })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `errore ${res.status}`)
+  return data
 }
+
+// Carica un file nel bucket tramite il Worker (solo admin)
+export async function uploadFile(key, blob) {
+  try {
+    await worker(`?key=${encodeURIComponent(key)}`, { method: 'PUT', body: blob, contentType: blob.type })
+  } catch (err) {
+    throw new Error(`Caricamento di ${key} non riuscito: ${err.message}`)
+  }
+}
+
+// Scarica un file del bucket passando dal Worker (l'URL pubblico non permette la lettura da script)
+export async function fetchFile(key) {
+  const res = await fetch(`${WORKER_URL}?key=${encodeURIComponent(key)}`)
+  if (!res.ok) throw new Error(`File ${key} non trovato`)
+  return res.blob()
+}
+
+// Gestione degli amministratori (passa dal Worker, che usa la chiave service_role)
+export const listUsers = () => worker('/utenti')
+export const createUser = (u) => worker('/utenti', { method: 'POST', body: JSON.stringify(u), contentType: 'application/json' })
+export const updateUser = (id, changes) => worker(`/utenti/${id}`, { method: 'PATCH', body: JSON.stringify(changes), contentType: 'application/json' })
+export const removeUser = (id) => worker(`/utenti/${id}`, { method: 'DELETE' })
