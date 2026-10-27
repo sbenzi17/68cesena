@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getPhotoDetail, imageUrl, pdfUrl } from '../data/photos'
+import HoverZoom from '../components/HoverZoom'
 
 function Field({ label, children }) {
   if (!children || (Array.isArray(children) && children.length === 0)) return null
@@ -54,14 +55,13 @@ export default function Dettaglio() {
                 <a href={pdf} className="btn" target="_blank" rel="noreferrer">Apri il PDF a schermo intero</a>
               </p>
             </div>
+          ) : src ? (
+            // lente: passando il mouse compare il dettaglio ingrandito a fianco
+            <HoverZoom key={src} src={src} alt={pages > 1 ? `${photo.titolo}, pagina ${page + 1}` : photo.titolo} />
           ) : (
-            <div
-              className={`detail-img thumb-img bg-${(parseInt(photo.id, 10) % 8) + 1}${src ? ' has-img' : ''}`}
-              data-label={src ? '' : 'Immagine in digitalizzazione'}
-            >
-              {src && <img src={src} alt={pages > 1 ? `${photo.titolo}, pagina ${page + 1}` : photo.titolo} />}
-            </div>
+            <div className="hover-zoom-empty">Immagine in digitalizzazione</div>
           )}
+          {src && !pdf && <p className="form-helper">Passa il mouse sull'immagine per vedere i dettagli ingranditi.</p>}
 
           {!pdf && pages > 1 && (
             <div className="pages">
