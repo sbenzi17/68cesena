@@ -218,9 +218,14 @@ export function recentPhotos() {
   return allRecords().filter(hasImage).sort(byAdded).slice(0, 12).map(toThumb)
 }
 
-// Le fotografie aggiunte più di recente, per il banner della home
-export function latestPhotos(n = 5) {
-  return allRecords().filter(r => hasImage(r) && r.serie === 'Fotografie').sort(byAdded).slice(0, n)
+// Fotografie scelte a caso (cambiano a ogni caricamento della pagina), per il banner della home
+export function randomPhotos(n = 5) {
+  const pool = allRecords().filter(r => hasImage(r) && r.serie === 'Fotografie')
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]]
+  }
+  return pool.slice(0, n)
 }
 
 const year = (r) => (r.dataOrd || '').slice(0, 4)

@@ -4,7 +4,7 @@ import Banner from '../components/Banner'
 import Thumb from '../components/Thumb'
 import Lightbox from '../components/Lightbox'
 import { useLightbox } from '../components/Lightbox'
-import { recentPhotos, latestPhotos, imageUrl, getRecords } from '../data/photos'
+import { recentPhotos, randomPhotos, imageUrl, getRecords } from '../data/photos'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -12,7 +12,7 @@ export default function Home() {
   const total = useMemo(() => getRecords().length, [])
   const lb = useLightbox(photos)
 
-  const slides = useMemo(() => latestPhotos(5).map(r => ({
+  const slides = useMemo(() => randomPhotos(5).map(r => ({
     image: imageUrl(r, 'large'),
     title: r.titolo,
     description: [r.citta, r.data].filter(Boolean).join(' — '),
