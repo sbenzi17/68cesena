@@ -19,6 +19,7 @@ const fromDb = (r) => ({
   sequenza: r.sequenza, tipologia: r.tipologia, supporto: r.supporto, dimensioni: r.dimensioni,
   orientamento: r.orientamento, colore: r.colore, particolare: r.particolare, fronteRetro: r.fronte_retro,
   pagine: r.pagine, note: r.note, immagini: r.immagini, pdf: r.pdf, updatedAt: r.updated_at,
+  createdAt: r.created_at,
 })
 
 const toDb = (r) => ({
@@ -210,16 +211,16 @@ export function getPhotoDetail(id) {
   return allRecords().find(r => r.id === id) || null
 }
 
+// Ultime aggiunte: per data di inserimento nel database, a parità per identificativo più alto
+const byAdded = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '') || b.id.localeCompare(a.id)
+
 export function recentPhotos() {
-  return [...allRecords()]
-    .filter(hasImage)
-    .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
-    .slice(0, 12)
-    .map(toThumb)
+  return allRecords().filter(hasImage).sort(byAdded).slice(0, 12).map(toThumb)
 }
 
-export function featuredPhotos(n = 3) {
-  return allRecords().filter(r => hasImage(r) && r.serie === 'Fotografie').filter((_, i) => i % 7 === 0).slice(0, n)
+// Le fotografie aggiunte più di recente, per il banner della home
+export function latestPhotos(n = 5) {
+  return allRecords().filter(r => hasImage(r) && r.serie === 'Fotografie').sort(byAdded).slice(0, n)
 }
 
 const year = (r) => (r.dataOrd || '').slice(0, 4)

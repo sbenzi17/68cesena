@@ -1,34 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-const defaultSlides = [
-  {
-    bg: 'bg-1',
-    eyebrow: 'In evidenza',
-    title: 'La Liberazione di Forlì',
-    description: '9 novembre 1944 — una raccolta di immagini inedite',
-    cta: 'Esplora la raccolta',
-    href: '/risultati',
-  },
-  {
-    bg: 'bg-3',
-    eyebrow: 'Nuovo fondo',
-    title: "Archivio Dell'Amore",
-    description: '47 fotografie dal 1948 al 1962',
-    cta: 'Sfoglia il fondo',
-    href: '/risultati',
-  },
-  {
-    bg: 'bg-7',
-    eyebrow: 'Mostra online',
-    title: 'Vita di paese nel dopoguerra',
-    description: 'Cesena, Forlimpopoli, Bertinoro — 1945-1955',
-    cta: 'Vai alla mostra',
-    href: '/risultati',
-  },
-]
-
-export default function Banner({ slides = defaultSlides }) {
+// Le slide scorrono da sole ogni 5 secondi (si fermano mentre il mouse è sopra il banner)
+export default function Banner({ slides }) {
   const [current, setCurrent] = useState(0)
   const timerRef = useRef(null)
 
@@ -56,29 +30,29 @@ export default function Banner({ slides = defaultSlides }) {
   return (
     <section className="banner" onMouseEnter={stop} onMouseLeave={start}>
       {slides.map((s, i) => (
-        <div
-          key={i}
-          className={`banner-slide ${s.bg || 'bg-1'}${s.image ? ' has-img' : ''}${i === current ? ' active' : ''}`}
-          style={s.image ? { backgroundImage: `url(${s.image})` } : undefined}
+        <Link
+          key={s.href}
+          to={s.href}
+          className={`banner-slide has-img${i === current ? ' active' : ''}`}
+          style={{ backgroundImage: `url(${s.image})` }}
+          tabIndex={i === current ? 0 : -1}
         >
           <div className="banner-content">
-            <span className="banner-eyebrow">{s.eyebrow}</span>
             <h2>{s.title}</h2>
             <p>{s.description}</p>
-            <Link to={s.href} className="banner-btn">{s.cta}</Link>
           </div>
-        </div>
+        </Link>
       ))}
 
-      <button className="banner-arrow banner-prev" aria-label="Precedente" onClick={() => goTo(current - 1)}>&larr;</button>
-      <button className="banner-arrow banner-next" aria-label="Successivo" onClick={() => goTo(current + 1)}>&rarr;</button>
+      <button className="banner-arrow banner-prev" aria-label="Foto precedente" onClick={() => goTo(current - 1)}>&#8249;</button>
+      <button className="banner-arrow banner-next" aria-label="Foto successiva" onClick={() => goTo(current + 1)}>&#8250;</button>
 
       <div className="banner-dots">
         {slides.map((_, i) => (
           <button
             key={i}
             className={`banner-dot${i === current ? ' active' : ''}`}
-            aria-label={`Slide ${i + 1}`}
+            aria-label={`Foto ${i + 1}`}
             onClick={() => goTo(i)}
           />
         ))}

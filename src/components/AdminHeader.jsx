@@ -15,7 +15,7 @@ export default function AdminHeader() {
       <div className="container">
         <div className="logo">
           Pannello di amministrazione
-          <small>Archivio Fotografico</small>
+          <small>1968/1977 a Cesena</small>
         </div>
         <nav className="admin-nav">
           <NavLink to="/admin" end>Schede</NavLink>

@@ -4,7 +4,7 @@ import Banner from '../components/Banner'
 import Thumb from '../components/Thumb'
 import Lightbox from '../components/Lightbox'
 import { useLightbox } from '../components/Lightbox'
-import { recentPhotos, featuredPhotos, imageUrl, getRecords } from '../data/photos'
+import { recentPhotos, latestPhotos, imageUrl, getRecords } from '../data/photos'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -12,20 +12,12 @@ export default function Home() {
   const total = useMemo(() => getRecords().length, [])
   const lb = useLightbox(photos)
 
-  const slides = useMemo(() => {
-    const [a, b, c] = featuredPhotos(3)
-    return [
-      { image: imageUrl(a, 'large'), eyebrow: 'Nuovo fondo', title: 'Fondo Maurizio Benzi',
-        description: 'Fotografie, volantini e manifesti · Cesena 1968–1977', cta: 'Sfoglia il fondo',
-        href: `/risultati?q=${encodeURIComponent('Fondo Maurizio Benzi')}` },
-      { image: imageUrl(b, 'large'), eyebrow: 'In evidenza', title: b?.titolo,
-        description: [b?.citta, b?.data].filter(Boolean).join(' — '), cta: 'Vedi la fotografia',
-        href: `/foto/${b?.id}` },
-      { image: imageUrl(c, 'large'), eyebrow: 'Percorso', title: 'Le manifestazioni',
-        description: 'Cortei, scioperi e assemblee negli anni Settanta', cta: 'Esplora',
-        href: `/risultati?q=manifestazione` },
-    ].filter(s => s.image)
-  }, [])
+  const slides = useMemo(() => latestPhotos(5).map(r => ({
+    image: imageUrl(r, 'large'),
+    title: r.titolo,
+    description: [r.citta, r.data].filter(Boolean).join(' — '),
+    href: `/foto/${r.id}`,
+  })), [])
 
   const onSubmit = (e) => {
     e.preventDefault()
