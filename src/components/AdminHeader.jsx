@@ -1,13 +1,17 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { supabase, hasBackend } from '../lib/supabase'
+import { loadCatalogo } from '../data/photos'
 
 export default function AdminHeader() {
   const navigate = useNavigate()
 
   const logout = async (e) => {
     e.preventDefault()
-    if (hasBackend) await supabase.auth.signOut()
-    navigate('/login')
+    if (hasBackend) {
+      await supabase.auth.signOut()
+      await loadCatalogo() // senza login le schede sospese non si vedono più
+    }
+    navigate('/')
   }
 
   return (
@@ -21,7 +25,6 @@ export default function AdminHeader() {
           <NavLink to="/admin" end>Schede</NavLink>
           {hasBackend && <NavLink to="/admin/storico">Storico</NavLink>}
           {hasBackend && <NavLink to="/admin/utenti">Utenti</NavLink>}
-          <Link to="/">Sito pubblico</Link>
           <a href="#" onClick={logout}>Esci</a>
         </nav>
       </div>

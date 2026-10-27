@@ -2,7 +2,7 @@
 // Con Supabase configurato (.env.production) legge e scrive sul database e le immagini stanno su R2;
 // altrimenti usa catalogo.json e salva le modifiche solo nel browser (modalità demo).
 // Il catalogo viene caricato tutto all'avvio (loadCatalogo) e poi filtrato in memoria.
-import { supabase, hasBackend, IMG_BASE, uploadFile, fetchFile } from '../lib/supabase'
+import { supabase, hasBackend, IMG_BASE, uploadFile } from '../lib/supabase'
 
 // pdf-lib si scarica solo quando serve rigenerare un PDF
 const PDF_LIB = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm'
@@ -86,13 +86,14 @@ const blobToDataUrl = (blob) => new Promise((resolve) => {
 // Nomi sempre nuovi per i file caricati: le versioni precedenti restano su R2 e lo storico può ripristinarle
 const uniqueName = (id) => `${id}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
 
-// PDF con una pagina per immagine: larghezza A4, altezza proporzionale (come scripts/bollettini-pdf.mjs)
-async function buildPdf(names, blobs) {
+// PDF con una pagina per immagine, nell'ordine dato: larghezza A4, altezza proporzionale
+// (come scripts/bollettini-pdf.mjs)
+export async function pdfFromImages(files) {
   const { PDFDocument } = await import(/* @vite-ignore */ PDF_LIB)
   const doc = await PDFDocument.create()
-  for (const name of names) {
-    const blob = blobs[name] || await fetchFile(`large/${name}.jpg`)
-    const img = await doc.embedJpg(await blob.arrayBuffer())
+  for (const file of files) {
+    const jpg = await resizeImage(file, 2000, 0.85)
+    const img = await doc.embedJpg(await jpg.arrayBuffer())
     const width = 595.28
     const height = width * img.height / img.width
     doc.addPage([width, height]).drawImage(img, { x: 0, y: 0, width, height })
@@ -108,32 +109,28 @@ function writeRow(row, exists) {
   return query.select().single()
 }
 
-// Salva una scheda. `pages` (facoltativo) è l'elenco ordinato delle pagine:
+// Salva una scheda. `pages` (facoltativo) è l'elenco ordinato delle immagini:
 // { name } per un'immagine già online, { file } per una nuova da caricare.
-export async function saveRecord(record, pages) {
+// `pdf` (facoltativo) è il nuovo PDF del documento completo (Blob), oppure null per toglierlo.
+export async function saveRecord(record, pages, pdf) {
   const r = { ...record }
   if (hasBackend) {
     if (pages) {
       const names = []
-      const blobs = {}
       for (const p of pages) {
         if (!p.file) { names.push(p.name); continue }
         const name = uniqueName(r.id)
-        blobs[name] = await resizeImage(p.file, 1600, 0.82)
         await uploadFile(`thumbs/${name}.jpg`, await resizeImage(p.file, 600, 0.75))
-        await uploadFile(`large/${name}.jpg`, blobs[name])
+        await uploadFile(`large/${name}.jpg`, await resizeImage(p.file, 1600, 0.82))
         names.push(name)
       }
-      const before = record.immagini || []
-      if (names.join() !== before.join()) {
-        if (r.pagine === String(before.length) || (!r.pagine && names.length > 1)) r.pagine = String(names.length)
-        r.immagini = names
-        if (!names.length) r.pdf = null
-        else if (r.pdf || r.serie === 'Bollettini') {
-          r.pdf = `${uniqueName(r.id)}.pdf`
-          await uploadFile(`pdf/${r.pdf}`, await buildPdf(names, blobs))
-        }
-      }
+      r.immagini = names
+    }
+    if (pdf) {
+      r.pdf = `${uniqueName(r.id)}.pdf`
+      await uploadFile(`pdf/${r.pdf}`, pdf)
+    } else if (pdf === null) {
+      r.pdf = null
     }
     const { data, error } = await writeRow(toDb(r), Boolean(getPhotoDetail(r.id)))
     if (error) throw error
@@ -214,8 +211,9 @@ export function getPhotoDetail(id) {
 // Ultime aggiunte: per data di inserimento nel database, a parità per identificativo più alto
 const byAdded = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '') || b.id.localeCompare(a.id)
 
+// Per la home: niente volantini
 export function recentPhotos() {
-  return allRecords().filter(hasImage).sort(byAdded).slice(0, 12).map(toThumb)
+  return allRecords().filter(r => hasImage(r) && r.serie !== 'Volantini').sort(byAdded).slice(0, 12).map(toThumb)
 }
 
 // Fotografie scelte a caso (cambiano a ogni caricamento della pagina), per il banner della home
@@ -242,6 +240,23 @@ const campoValues = {
 
 const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
+// Radice di una parola: senza la vocale finale, così singolare e plurale coincidono
+// (bollettino/bollettini, manifestazione/manifestazioni, studente/studenti)
+const stem = (w) => w.length >= 4 ? w.replace(/[aeiou]$/, '') : w
+const words = (s) => norm(s).split(/[^a-z0-9?]+/).filter(Boolean)
+
+// Testo in cui cerca la ricerca libera, preparato una volta per scheda
+const haystacks = new WeakMap()
+function haystack(r) {
+  if (!haystacks.has(r)) {
+    haystacks.set(r, ` ${words([
+      r.id, r.titolo, r.autore, r.citta, r.luogo, r.luogoStampa, r.evento, r.data, r.serie,
+      r.tipologia, r.supporto, r.note, ...r.persone, ...r.formazione, ...r.parole,
+    ].join(' ')).join(' ')}`)
+  }
+  return haystacks.get(r)
+}
+
 export function search(q, campo) {
   const needle = norm(q)
   const records = allRecords()
@@ -250,10 +265,9 @@ export function search(q, campo) {
   else if (campo && campoValues[campo]) {
     found = records.filter(r => campoValues[campo](r).some(v => norm(v) === needle))
   } else {
-    found = records.filter(r => norm([
-      r.id, r.titolo, r.autore, r.citta, r.luogo, r.evento, r.data, r.serie,
-      ...r.persone, ...r.formazione, ...r.parole,
-    ].join(' ')).includes(needle))
+    // ogni parola cercata deve comparire (in qualsiasi ordine) come inizio di una parola della scheda
+    const terms = words(q).map(w => ` ${stem(w)}`)
+    found = records.filter(r => terms.every(t => haystack(r).includes(t)))
   }
   // Prima le schede che hanno già l'immagine online
   return [...found].sort((a, b) => (hasImage(b) ? 1 : 0) - (hasImage(a) ? 1 : 0))

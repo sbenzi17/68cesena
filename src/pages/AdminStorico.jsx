@@ -78,7 +78,9 @@ export default function AdminStorico() {
       .catch(() => setNames({}))
   }, [])
 
-  const who = (uid) => !uid ? 'importazione iniziale' : !names ? '…' : names[uid] || 'utente rimosso'
+  // senza utente: righe scritte dagli script (importazione iniziale o interventi tecnici)
+  const who = (uid, azione) => !uid ? (azione === 'INSERT' ? 'importazione iniziale' : 'intervento tecnico')
+    : !names ? '…' : names[uid] || 'utente rimosso'
 
   const restore = async (entry) => {
     const current = getPhotoDetail(entry.scheda_id)
@@ -144,7 +146,7 @@ export default function AdminStorico() {
             <div className="storico-head">
               <span className={`badge ${cls}`}>{label}</span>
               <Link to={`/admin/foto/${e.scheda_id}`}>Scheda {e.scheda_id}</Link>
-              <span>{who(e.utente)}</span>
+              <span>{who(e.utente, e.azione)}</span>
               <time dateTime={e.quando}>{when(e.quando)}</time>
               <span className="storico-actions">
                 {canRestore && (
@@ -176,7 +178,7 @@ export default function AdminStorico() {
           <>
             <p>
               Stai per eliminare la riga «{(azioni[toDelete.azione] || [toDelete.azione])[0]}» della scheda {toDelete.scheda_id}
-              {' '}del {when(toDelete.quando)} ({who(toDelete.utente)}).
+              {' '}del {when(toDelete.quando)} ({who(toDelete.utente, toDelete.azione)}).
             </p>
             <p>La scheda non cambia, ma questa modifica non si potrà più ripristinare. L'operazione è definitiva.</p>
           </>

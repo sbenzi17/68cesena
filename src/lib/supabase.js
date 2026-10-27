@@ -50,13 +50,6 @@ export async function uploadFile(key, blob) {
   }
 }
 
-// Scarica un file del bucket passando dal Worker (l'URL pubblico non permette la lettura da script)
-export async function fetchFile(key) {
-  const res = await fetch(`${WORKER_URL}?key=${encodeURIComponent(key)}`)
-  if (!res.ok) throw new Error(`File ${key} non trovato`)
-  return res.blob()
-}
-
 // Gestione degli amministratori (passa dal Worker, che usa la chiave service_role)
 export const listUsers = () => worker('/utenti')
 export const createUser = (u) => worker('/utenti', { method: 'POST', body: JSON.stringify(u), contentType: 'application/json' })

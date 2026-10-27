@@ -181,7 +181,7 @@ export default function Collabora() {
               </div>
               <div className="form-group">
                 <label htmlFor="luoghi">Luoghi</label>
-                <input type="text" id="luoghi" name="luoghi" placeholder="es. Forlì, Cesena…" />
+                <input type="text" id="luoghi" name="luoghi" placeholder="es. Cesena" />
               </div>
             </div>
 

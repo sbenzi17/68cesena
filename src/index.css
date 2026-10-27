@@ -473,13 +473,9 @@ a.banner-slide:hover { text-decoration: none; }
   gap: 2rem 1.5rem;
 }
 
-.thumb {
-  cursor: pointer;
-  display: block;
-  color: inherit;
-}
-
-.thumb:hover { text-decoration: none; }
+.thumb { display: block; }
+.thumb-img-link { display: block; cursor: zoom-in; }
+.thumb a:hover { text-decoration: none; }
 
 .thumb-img {
   aspect-ratio: 1;
@@ -512,6 +508,7 @@ a.banner-slide:hover { text-decoration: none; }
 }
 
 .thumb-caption {
+  display: block;
   font-size: 0.85rem;
   color: var(--fg-soft);
   margin-top: 0.75rem;
@@ -519,6 +516,15 @@ a.banner-slide:hover { text-decoration: none; }
   font-family: var(--serif);
   font-style: italic;
 }
+.thumb-caption:hover { color: var(--accent); }
+.thumb-more {
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.thumb-caption:hover .thumb-more { text-decoration: underline; text-underline-offset: 3px; }
 
 /* Variantes vintage para thumbnails */
 .bg-1 { background: linear-gradient(135deg, #6e5d4a, #3a2e22); }
@@ -1395,6 +1401,70 @@ a.banner-slide:hover { text-decoration: none; }
 }
 .pages-thumb.active { border-color: var(--accent, #7a1f24); opacity: 1; }
 .pages-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* PDF dei documenti completi nella scheda pubblica */
+.pdf-viewer iframe {
+  display: block;
+  width: 100%;
+  height: 85vh;
+  min-height: 520px;
+  border: 1px solid var(--border);
+  background: #525659;
+}
+.pdf-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+
+/* Pannello admin: immagine ad altezza fissa (le miniature sotto non saltano) con lente stile negozio online */
+.hover-zoom {
+  position: relative;
+  height: 70vh;
+  min-height: 420px;
+  background: var(--paper);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.hover-zoom > img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: crosshair;
+  display: block;
+}
+.hover-zoom-lens {
+  position: absolute;
+  border: 1px solid rgba(122,32,36,0.8);
+  background: rgba(253,250,242,0.3);
+  pointer-events: none;
+}
+.hover-zoom-pane {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 3.5rem); /* sopra la colonna dei campi (vedi .detail) */
+  width: 50%;
+  height: 100%;
+  z-index: 30;
+  background-color: var(--paper);
+  background-repeat: no-repeat;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  pointer-events: none;
+}
+.hover-zoom-empty {
+  height: 70vh;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  color: var(--muted);
+  border: 1px dashed var(--border);
+}
+@media (max-width: 768px) {
+  .hover-zoom, .hover-zoom-empty { height: 55vh; min-height: 300px; }
+  .hover-zoom-pane, .hover-zoom-lens { display: none; }
+}
+
 /* Pannello admin: lente, password, barra delle azioni */
 .detail-img { position: relative; }
 .zoom-btn {
@@ -1446,14 +1516,14 @@ a.banner-slide:hover { text-decoration: none; }
 }
 .admin-actionbar .container {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem 1rem;
+  gap: 0.5rem;
 }
+.admin-actionbar-msg:empty { display: none; }
 .admin-actionbar-msg .form-error,
 .admin-actionbar-msg .form-ok { margin: 0; }
-.admin-actionbar-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-left: auto; }
+.admin-actionbar-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
 main:has(.admin-actionbar) { padding-bottom: 6rem; }
 
 /* Pannello admin: pagine della scheda, gruppi di campi, storico, utenti */

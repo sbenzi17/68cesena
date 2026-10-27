@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getPhotoDetail, imageUrl, saveRecord, deleteRecord, nextId, distinctValues } from '../data/photos'
+import { getPhotoDetail, imageUrl, pdfUrl, pdfFromImages, saveRecord, deleteRecord, nextId, distinctValues } from '../data/photos'
 import { precisioni, splitOrd, joinOrd, IT_PATTERN } from '../data/dates'
 import { hasBackend } from '../lib/supabase'
 import Lightbox from '../components/Lightbox'
+import HoverZoom from '../components/HoverZoom'
 
 function ZoomIcon() {
   return (
@@ -95,6 +96,8 @@ export default function AdminEdit() {
   const [pages, setPages] = useState(() => (original?.immagini || []).map(toPage))
   const [selected, setSelected] = useState(0)
   const [zoom, setZoom] = useState(null)
+  // PDF del documento completo: null = invariato, 'togli' = da eliminare, { blob, label } = nuovo
+  const [pdf, setPdf] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(Boolean(location.state?.saved))
@@ -132,6 +135,23 @@ export default function AdminEdit() {
     setSelected(pages.length)
   }
 
+  const onPdfFile = (file) => file && setPdf({ blob: file, label: file.name })
+
+  // PDF creato nel browser da più immagini; se la scheda non ha immagini, la prima diventa la copertina
+  const onPdfImages = async (files) => {
+    if (!files?.length) return
+    const sorted = Array.from(files).sort((a, b) => a.name.localeCompare(b.name, 'it', { numeric: true }))
+    setBusy(true)
+    setError('')
+    try {
+      setPdf({ blob: await pdfFromImages(sorted), label: `creato da ${sorted.length} immagini` })
+      if (!pages.length) setPages([fromFile(sorted[0])])
+    } catch (err) {
+      setError(`Creazione del PDF non riuscita: ${err.message}`)
+    }
+    setBusy(false)
+  }
+
   const onSubmit = async (e) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
@@ -153,7 +173,7 @@ export default function AdminEdit() {
     setBusy(true)
     setError('')
     try {
-      const result = await saveRecord(record, pagesChanged ? pages : undefined)
+      const result = await saveRecord(record, pagesChanged ? pages : undefined, pdf === 'togli' ? null : pdf?.blob)
       // si resta nel pannello: la pagina si ricarica con i dati appena salvati
       navigate(`/admin/foto/${result.id}`, { replace: isNew, state: { saved: true } })
     } catch (err) {
@@ -193,19 +213,17 @@ export default function AdminEdit() {
 
       <form className="detail" onSubmit={onSubmit}>
         <div>
-          <div
-            className={`detail-img thumb-img bg-${(parseInt(original.id, 10) % 8) + 1}${current ? ' has-img' : ''}`}
-            data-label={current ? '' : 'Nessuna immagine'}
-          >
-            {current && (
-              <>
-                <img src={current.large} alt="" onClick={() => setZoom(pages.indexOf(current))} style={{ cursor: 'zoom-in' }} />
-                <button type="button" className="zoom-btn" onClick={() => setZoom(pages.indexOf(current))} aria-label="Ingrandisci" title="Ingrandisci">
-                  <ZoomIcon />
-                </button>
-              </>
-            )}
-          </div>
+          {current ? (
+            <div style={{ position: 'relative' }}>
+              <HoverZoom key={current.key} src={current.large} onClick={() => setZoom(pages.indexOf(current))} />
+              <button type="button" className="zoom-btn" onClick={() => setZoom(pages.indexOf(current))} aria-label="Apri a schermo intero" title="Apri a schermo intero">
+                <ZoomIcon />
+              </button>
+            </div>
+          ) : (
+            <div className="hover-zoom-empty">Nessuna immagine</div>
+          )}
+          <p className="form-helper">Passa il mouse sull'immagine per vedere i dettagli ingranditi; clic per aprirla a schermo intero.</p>
 
           <h3 className="page-editor-title">Pagine ({pages.length})</h3>
           {pages.length > 0 && (
@@ -232,11 +250,39 @@ export default function AdminEdit() {
           <div className="form-group">
             <label htmlFor="file">{pages.length ? 'Aggiungi pagine' : 'Carica immagini'}</label>
             <input type="file" id="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => { add(e.target.files); e.target.value = '' }} />
-            <p className="form-helper">
-              Puoi scegliere più file insieme: vengono aggiunti in fondo, nell'ordine del nome.
-              {(original.pdf || original.serie === 'Bollettini') && ' Se cambi le pagine, il PDF viene rigenerato al salvataggio.'}
-            </p>
+            <p className="form-helper">Puoi scegliere più file insieme: vengono aggiunti in fondo, nell'ordine del nome.</p>
           </div>
+
+          {hasBackend && (
+            <fieldset className="admin-fieldset">
+              <legend>PDF del documento completo</legend>
+              {pdf === 'togli' ? (
+                <p>Il PDF verrà tolto al salvataggio. <button type="button" className="action" onClick={() => setPdf(null)}>Annulla</button></p>
+              ) : pdf ? (
+                <p className="form-ok">Nuovo PDF pronto ({pdf.label}): verrà caricato al salvataggio. <button type="button" className="action" onClick={() => setPdf(null)}>Annulla</button></p>
+              ) : original.pdf ? (
+                <p>
+                  <a href={pdfUrl(original)} target="_blank" rel="noreferrer">Apri il PDF attuale</a>
+                  {' · '}
+                  <button type="button" className="action" onClick={() => setPdf('togli')}>Togli il PDF</button>
+                </p>
+              ) : (
+                <p className="muted-text">Nessun PDF.</p>
+              )}
+              <div className="form-group">
+                <label htmlFor="pdf-file">{original.pdf ? 'Sostituisci con un PDF' : 'Carica un PDF'}</label>
+                <input type="file" id="pdf-file" accept="application/pdf" onChange={(e) => { onPdfFile(e.target.files?.[0]); e.target.value = '' }} />
+              </div>
+              <div className="form-group">
+                <label htmlFor="pdf-images">Oppure crea il PDF da più immagini</label>
+                <input type="file" id="pdf-images" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => { onPdfImages(e.target.files); e.target.value = '' }} disabled={busy} />
+                <p className="form-helper">
+                  Le pagine vanno nell'ordine del nome del file. Come per i bollettini, nella scheda basta la prima pagina
+                  come immagine: se la scheda non ne ha, uso la prima.
+                </p>
+              </div>
+            </fieldset>
+          )}
         </div>
 
         <div className="detail-meta">
@@ -309,7 +355,6 @@ export default function AdminEdit() {
                 <button type="button" className="btn btn-secondary btn-danger" onClick={onDelete} disabled={busy}>Elimina scheda</button>
               )}
               <Link to="/admin" className="btn btn-secondary">Chiudi</Link>
-              {!isNew && <Link to={`/foto/${original.id}`} className="btn btn-secondary">Vedi nel sito</Link>}
               <button type="submit" className="btn" disabled={busy}>{busy ? 'Salvataggio…' : 'Salva modifiche'}</button>
             </div>
           </div>

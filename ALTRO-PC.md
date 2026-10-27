@@ -14,7 +14,7 @@ Situazione al 27/10/2026: il sito è online e collegato al database.
 1. Apri il sito e clicca **Area riservata**.
 2. Entra con l'email e la password dell'utente admin creato su Supabase.
 3. Tutto viene salvato subito online, da qualsiasi computer.
-   - **Schede**: modifica di tutti i campi; persone, formazioni e parole chiave si scrivono una per riga. Si possono aggiungere, togliere, riordinare e sostituire le pagine. Per i Bollettini il PDF si rigenera da solo. Con lo stato «Sospesa» la scheda resta visibile solo agli admin.
+   - **Schede**: modifica di tutti i campi; persone, formazioni e parole chiave si scrivono una per riga. Si possono aggiungere, togliere, riordinare e sostituire le immagini. Per i documenti completi (i Bollettini) nella scheda c'è solo la prima pagina come immagine, mentre il documento intero è un PDF: nella sezione «PDF del documento completo» lo carichi già pronto o lo crei da più immagini. Con lo stato «Sospesa» la scheda resta visibile solo agli admin.
    - **Storico**: chi ha cambiato cosa e quando, con il prima e il dopo. Il pulsante «Ripristina» riporta la scheda com'era, anche se era stata eliminata.
    - **Utenti**: per aggiungere o togliere amministratori e reimpostare la password di un altro admin. Nella sezione «Il mio account» cambi la tua password.
 4. Il pulsante **Esporta catalogo** scarica un CSV con le stesse colonne dell'Excel.

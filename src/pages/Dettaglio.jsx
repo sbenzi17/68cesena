@@ -46,14 +46,24 @@ export default function Dettaglio() {
 
       <article className="detail">
         <div>
-          <div
-            className={`detail-img thumb-img bg-${(parseInt(photo.id, 10) % 8) + 1}${src ? ' has-img' : ''}`}
-            data-label={src ? '' : 'Immagine in digitalizzazione'}
-          >
-            {src && <img src={src} alt={pages > 1 ? `${photo.titolo}, pagina ${page + 1}` : photo.titolo} />}
-          </div>
+          {pdf ? (
+            // documento completo (bollettini): il PDF si sfoglia direttamente nella pagina
+            <div className="pdf-viewer">
+              <iframe src={`${pdf}#view=FitH`} title={`${photo.titolo} (PDF)`} />
+              <p className="pdf-actions">
+                <a href={pdf} className="btn" target="_blank" rel="noreferrer">Apri il PDF a schermo intero</a>
+              </p>
+            </div>
+          ) : (
+            <div
+              className={`detail-img thumb-img bg-${(parseInt(photo.id, 10) % 8) + 1}${src ? ' has-img' : ''}`}
+              data-label={src ? '' : 'Immagine in digitalizzazione'}
+            >
+              {src && <img src={src} alt={pages > 1 ? `${photo.titolo}, pagina ${page + 1}` : photo.titolo} />}
+            </div>
+          )}
 
-          {pages > 1 && (
+          {!pdf && pages > 1 && (
             <div className="pages">
               {photo.immagini.map((name, i) => (
                 <button
@@ -69,11 +79,6 @@ export default function Dettaglio() {
             </div>
           )}
 
-          {pdf && (
-            <p style={{ marginTop: '1rem' }}>
-              <a href={pdf} className="btn btn-secondary" target="_blank" rel="noreferrer">Apri il PDF ({pages} pagine)</a>
-            </p>
-          )}
         </div>
 
         <div className="detail-meta">
