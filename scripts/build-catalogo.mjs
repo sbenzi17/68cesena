@@ -23,9 +23,10 @@ function parseCSV(text) {
   return rows
 }
 
-// I campi multipli dell'export sono separati dal carattere 0x1D, scritto come _x001d_
-const list = (v) => (v || '').split('_x001d_').map(s => s.trim()).filter(Boolean)
-const text = (v) => (v || '').replace(/_x001d_/g, ' ').trim()
+// I campi multipli dell'export sono separati dal carattere 0x1D, scritto come _x001d_ (Excel lo salva come _x001D_);
+// in qualche cella c'è un a capo (_x000b_) al posto del separatore
+const list = (v) => (v || '').split(/_x001d_|_x000b_/i).map(s => s.trim()).filter(Boolean)
+const text = (v) => (v || '').replace(/_x001d_|_x000b_/gi, ' ').trim()
 const num = (v) => text(v).replace(/\.0$/, '')
 
 const [header, ...rows] = parseCSV(readFileSync(csvPath, 'utf8'))
