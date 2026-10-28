@@ -10,6 +10,17 @@ Situazione al 27/10/2026: il sito è online e collegato al database.
 | Worker dei caricamenti | `https://archivio-upload.archivio6877.workers.dev` |
 | Codice | GitHub `sbenzi17/archivio-fotografico-isr-fc-react`, branch `archivo-fotografico-v1` |
 
+## Da fare
+- [ ] **Contatore visite**: nel pannello, pagina **Stato** → sezione «Visite» → «Copia il testo», poi su supabase.com → SQL Editor → + New query → incolla → **Run**. Il contatore parte da quel momento.
+- [ ] **Google Search Console** (gratuito, serve per comparire bene su Google):
+  1. Vai su https://search.google.com/search-console e accedi con l'account Google.
+  2. **Aggiungi proprietà** → tipo **«Prefisso URL»** → `https://sbenzi17.github.io/archivio-fotografico-isr-fc-react/`
+  3. Come metodo di verifica scegli **«Tag HTML»**: copia il codice `<meta name="google-site-verification" content="…">` e mandalo a Claude, che lo inserisce in `index.html` e ripubblica il sito. Poi premi **Verifica**.
+  4. Menu **Sitemap** → scrivi `sitemap.xml` → **Invia**.
+  5. Dopo qualche giorno, in **Pagine** si vede quante schede Google ha indicizzato.
+  - Quando ci sarà il dominio, va aggiunta una proprietà nuova con il nuovo indirizzo e ripetuti i passi 3 e 4.
+- [ ] **Dominio**: scegliere il nome e comprarlo (solo il dominio, niente hosting); poi Claude collega il dominio a GitHub Pages e alle immagini.
+
 ## 1. Per modificare o aggiungere schede: niente da installare
 1. Apri il sito e clicca **Area riservata**.
 2. Entra con l'email e la password dell'utente admin creato su Supabase.
