@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getPhotoDetail, imageUrl, pdfUrl, pdfFromImages, pdfFirstPage, saveRecord, deleteRecord, nextId, distinctValues } from '../data/photos'
+import {
+  getPhotoDetail, imageUrl, pdfUrl, pdfFromImages, pdfFirstPage, saveRecord, deleteRecord, nextId, distinctValues,
+  hasMediaColumns, youtubeId, audioUrl, SQL_MEDIA,
+} from '../data/photos'
+import { VideoEmbed, AudioPlayer } from '../components/Media'
 import { precisioni, splitOrd, joinOrd, IT_PATTERN } from '../data/dates'
 import { hasBackend } from '../lib/supabase'
 import Lightbox from '../components/Lightbox'
@@ -98,6 +102,10 @@ export default function AdminEdit() {
   const [zoom, setZoom] = useState(null)
   // PDF del documento completo: null = invariato, 'togli' = da eliminare, { blob, label } = nuovo
   const [pdf, setPdf] = useState(null)
+  // audio: null = invariato, 'togli' = da eliminare, File = nuovo; video: link di YouTube
+  const [audio, setAudio] = useState(null)
+  const [video, setVideo] = useState(original?.video || '')
+  const audioPreview = useMemo(() => audio instanceof File ? URL.createObjectURL(audio) : null, [audio])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(Boolean(location.state?.saved))
@@ -185,10 +193,18 @@ export default function AdminEdit() {
       return
     }
     record.dataOrd = date.value
+    if (hasMediaColumns()) {
+      if (video.trim() && !youtubeId(video)) {
+        setError('Il link del video non è un indirizzo di YouTube valido (es. https://www.youtube.com/watch?v=…).')
+        return
+      }
+      record.video = video.trim()
+    }
     setBusy(true)
     setError('')
     try {
-      const result = await saveRecord(record, pagesChanged ? pages : undefined, pdf === 'togli' ? null : pdf?.blob)
+      const result = await saveRecord(record, pagesChanged ? pages : undefined, pdf === 'togli' ? null : pdf?.blob,
+        audio === 'togli' ? null : audio || undefined)
       // si resta nel pannello: la pagina si ricarica con i dati appena salvati
       navigate(`/admin/foto/${result.id}`, { replace: isNew, state: { saved: true } })
     } catch (err) {
@@ -296,6 +312,59 @@ export default function AdminEdit() {
                   diventa l'immagine (e la miniatura) della scheda, al posto di quelle attuali.
                 </p>
               </div>
+            </fieldset>
+          )}
+
+          {hasBackend && (
+            <fieldset className="admin-fieldset">
+              <legend>Video e audio</legend>
+              {hasMediaColumns() ? (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="video">Video (link di YouTube)</label>
+                    <input type="url" id="video" value={video} onChange={(e) => setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" />
+                    {video.trim() && !youtubeId(video) && <p className="form-error">Non è un link di YouTube valido.</p>}
+                  </div>
+                  {youtubeId(video) && <VideoEmbed url={video} />}
+
+                  <div className="form-group" style={{ marginTop: '1.25rem' }}>
+                    {audio === 'togli' ? (
+                      <p>L'audio verrà tolto al salvataggio. <button type="button" className="action" onClick={() => setAudio(null)}>Annulla</button></p>
+                    ) : audio ? (
+                      <>
+                        <p className="form-ok">Nuovo audio pronto ({audio.name}): verrà caricato al salvataggio. <button type="button" className="action" onClick={() => setAudio(null)}>Annulla</button></p>
+                        <AudioPlayer src={audioPreview} label="Anteprima" />
+                      </>
+                    ) : original.audio ? (
+                      <>
+                        <AudioPlayer src={audioUrl(original)} label="Audio attuale" />
+                        <p style={{ marginTop: '0.5rem' }}><button type="button" className="action" onClick={() => setAudio('togli')}>Togli l'audio</button></p>
+                      </>
+                    ) : null}
+                    <label htmlFor="audio-file" style={{ marginTop: '0.75rem' }}>{original.audio ? 'Sostituisci il file audio' : 'Carica un file audio'}</label>
+                    <input
+                      type="file" id="audio-file" accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/ogg,audio/wav,.mp3,.m4a,.ogg,.wav"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0]
+                        e.target.value = ''
+                        if (!f) return
+                        if (f.size > 95 * 1024 * 1024) { setError('Il file audio supera i 95 MB: comprimilo in MP3 prima di caricarlo.'); return }
+                        setError('')
+                        setAudio(f)
+                      }}
+                    />
+                    <p className="form-helper">Formati: MP3, M4A, OGG o WAV, fino a 95 MB. Meglio MP3: occupa meno spazio.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>Per attivare video e audio va aggiunto al database uno spazio per i due campi, una volta sola:
+                    su supabase.com apri il progetto → <strong>SQL Editor</strong> → <strong>+ New query</strong>, incolla il testo qui sotto,
+                    premi <strong>Run</strong> e poi ricarica questa pagina.</p>
+                  <pre className="stato-sql">{SQL_MEDIA}</pre>
+                  <button type="button" className="btn btn-secondary" onClick={() => navigator.clipboard.writeText(SQL_MEDIA)}>Copia il testo</button>
+                </>
+              )}
             </fieldset>
           )}
         </div>

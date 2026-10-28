@@ -20,7 +20,7 @@ const fromDb = (r) => ({
   sequenza: r.sequenza, tipologia: r.tipologia, supporto: r.supporto, dimensioni: r.dimensioni,
   orientamento: r.orientamento, colore: r.colore, particolare: r.particolare, fronteRetro: r.fronte_retro,
   pagine: r.pagine, note: r.note, immagini: r.immagini, pdf: r.pdf, updatedAt: r.updated_at,
-  createdAt: r.created_at,
+  createdAt: r.created_at, audio: r.audio, video: r.video,
 })
 
 const toDb = (r) => ({
@@ -30,7 +30,40 @@ const toDb = (r) => ({
   sequenza: r.sequenza, tipologia: r.tipologia, supporto: r.supporto, dimensioni: r.dimensioni,
   orientamento: r.orientamento, colore: r.colore, particolare: r.particolare, fronte_retro: r.fronteRetro,
   pagine: r.pagine, note: r.note, immagini: r.immagini || [], pdf: r.pdf || null,
+  // audio e video solo se le colonne esistono già nel database (vedi supabase/schema.sql)
+  ...(mediaReady && { audio: r.audio || null, video: r.video || null }),
 })
+
+// true se il database ha le colonne audio e video
+let mediaReady = false
+export const hasMediaColumns = () => mediaReady
+
+export const SQL_MEDIA = `alter table public.schede
+  add column if not exists audio text,
+  add column if not exists video text;
+notify pgrst, 'reload schema';`
+
+// Video: solo link di YouTube. Restituisce l'identificativo del video, oppure null se il link non è valido
+export function youtubeId(url) {
+  const m = (url || '').trim().match(/^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+  return m ? m[1] : null
+}
+// versione "senza cookie" di YouTube: niente tracciamento finché il video non parte
+export const youtubeEmbed = (url) => youtubeId(url) && `https://www.youtube-nocookie.com/embed/${youtubeId(url)}`
+export const youtubeThumb = (url) => youtubeId(url) && `https://img.youtube.com/vi/${youtubeId(url)}/hqdefault.jpg`
+
+export const audioUrl = (record) => hasBackend && record?.audio ? `${IMG_BASE}/audio/${record.audio}` : null
+export const AUDIO_EXT = { 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/ogg': 'ogg', 'audio/wav': 'wav', 'audio/x-wav': 'wav' }
+
+// Formati presenti in una scheda: servono all'indice "Formato", ai filtri e alle etichette delle miniature
+export function formati(r) {
+  return [
+    r.immagini?.length && 'Immagini',
+    r.pdf && 'PDF',
+    r.video && 'Video',
+    r.audio && 'Audio',
+  ].filter(Boolean)
+}
 
 // Modalità demo: modifiche salvate in localStorage
 function loadEdits() {
@@ -47,6 +80,7 @@ export async function loadCatalogo() {
       rows.push(...data)
       if (data.length < 1000) break
     }
+    mediaReady = rows.length > 0 && 'audio' in rows[0] && 'video' in rows[0]
     cache = rows.map(fromDb)
     evento = await ev
     return
@@ -181,7 +215,8 @@ function writeRow(row, exists) {
 // Salva una scheda. `pages` (facoltativo) è l'elenco ordinato delle immagini:
 // { name } per un'immagine già online, { file } per una nuova da caricare.
 // `pdf` (facoltativo) è il nuovo PDF del documento completo (Blob), oppure null per toglierlo.
-export async function saveRecord(record, pages, pdf) {
+// `audio` (facoltativo) è il nuovo file audio (File), oppure null per toglierlo.
+export async function saveRecord(record, pages, pdf, audio) {
   const r = { ...record }
   if (hasBackend) {
     if (pages) {
@@ -200,6 +235,13 @@ export async function saveRecord(record, pages, pdf) {
       await uploadFile(`pdf/${r.pdf}`, pdf)
     } else if (pdf === null) {
       r.pdf = null
+    }
+    if (audio) {
+      const ext = AUDIO_EXT[audio.type] || audio.name.split('.').pop().toLowerCase()
+      r.audio = `${uniqueName(r.id)}.${ext}`
+      await uploadFile(`audio/${r.audio}`, audio)
+    } else if (audio === null) {
+      r.audio = null
     }
     const exists = Boolean(getPhotoDetail(r.id))
     const { data, error } = await writeRow(toDb(r), exists)
@@ -265,15 +307,17 @@ function shortPlace(r) {
   return [r.citta, r.data].filter(Boolean).join(', ')
 }
 
-// Forma usata da Thumb e Lightbox
+// Forma usata da Thumb e Lightbox; senza immagini, la miniatura di un video è quella di YouTube
 export function toThumb(r) {
+  const src = imageUrl(r) || youtubeThumb(r.video)
   return {
     id: r.id,
     bg: `bg-${(parseInt(r.id, 10) % 8) + 1}`,
-    label: hasImage(r) ? '' : 'Immagine in digitalizzazione',
+    label: src ? '' : r.audio ? 'Audio' : 'Immagine in digitalizzazione',
     caption: [r.titolo, shortPlace(r)].filter(Boolean).join(' · '),
-    src: imageUrl(r),
-    large: imageUrl(r, 'large'),
+    src,
+    large: imageUrl(r, 'large') || youtubeThumb(r.video),
+    formati: formati(r).filter(f => f !== 'Immagini'),
   }
 }
 
@@ -308,6 +352,7 @@ const campoValues = {
   formazione: (r) => r.formazione,
   parole: (r) => r.parole,
   serie: (r) => [r.serie].filter(Boolean),
+  formato: (r) => formati(r),
 }
 
 const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -323,7 +368,7 @@ function haystack(r) {
   if (!haystacks.has(r)) {
     haystacks.set(r, ` ${words([
       r.id, r.titolo, r.autore, r.citta, r.luogo, r.luogoStampa, r.evento, r.data, r.serie,
-      r.tipologia, r.supporto, r.note, ...r.persone, ...r.formazione, ...r.parole,
+      r.tipologia, r.supporto, r.note, ...r.persone, ...r.formazione, ...r.parole, ...formati(r),
     ].join(' ')).join(' ')}`)
   }
   return haystacks.get(r)
@@ -355,7 +400,7 @@ const exportColumns = [
   ['sequenza', 'sequenza'], ['tipologia', 'tipologia'], ['supporto', 'supporto'],
   ['dimensioni originale', 'dimensioni'], ['orientamento', 'orientamento'], ['colore', 'colore'],
   ['particolare', 'particolare'], ['fronte retro', 'fronteRetro'], ['pagine', 'pagine'], ['note', 'note'],
-  ['file immagini', 'immagini'], ['pdf', 'pdf'],
+  ['file immagini', 'immagini'], ['pdf', 'pdf'], ['audio', 'audio'], ['video', 'video'],
 ]
 
 export function exportCSV() {
@@ -404,17 +449,20 @@ const titoli = {
   persone: 'Persone',
   formazione: 'Formazione politica',
   parole: 'Parole chiave',
+  formato: 'Formato',
 }
+
+const ORDINE_FORMATI = ['Immagini', 'PDF', 'Video', 'Audio']
 
 export function buildIndex(campo) {
   const key = titoli[campo] ? campo : 'autore'
-  const counts = new Map()
+  // i formati compaiono sempre tutti, anche quelli ancora senza schede
+  const counts = new Map(key === 'formato' ? ORDINE_FORMATI.map(f => [f, 0]) : [])
   for (const r of allRecords()) {
     for (const v of new Set(campoValues[key](r))) counts.set(v, (counts.get(v) || 0) + 1)
   }
   const items = [...counts].map(([name, count]) => ({ name, count }))
-  items.sort(key === 'data'
-    ? (a, b) => a.name.localeCompare(b.name)
-    : (a, b) => b.count - a.count || a.name.localeCompare(b.name, 'it'))
+  if (key === 'data') items.sort((a, b) => a.name.localeCompare(b.name))
+  else if (key !== 'formato') items.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'it'))
   return { campo: key, titolo: titoli[key], items }
 }

@@ -13,7 +13,7 @@ const labels = {
   serie: 'Serie', tipologia: 'Tipologia', supporto: 'Supporto', dimensioni: 'Dimensioni', orientamento: 'Orientamento',
   colore: 'Colore', particolare: 'Particolare', fronte_retro: 'Fronte / retro', pagine: 'Pagine',
   sequenza: 'Sequenza', persone: 'Persone', formazione: 'Formazione politica', parole: 'Parole chiave',
-  note: 'Note', immagini: 'Immagini', pdf: 'PDF',
+  note: 'Note', immagini: 'Immagini', pdf: 'PDF', video: 'Video', audio: 'Audio',
 }
 
 const azioni = {

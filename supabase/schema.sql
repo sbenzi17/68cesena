@@ -31,6 +31,8 @@ create table public.schede (
   note          text,
   immagini      text[] not null default '{}', -- nomi dei file su R2 in ordine, es. {084-001,084-002}
   pdf           text,                         -- nome del PDF su R2, es. '084.pdf'
+  audio         text,                         -- nome del file audio su R2 (cartella audio/)
+  video         text,                         -- link di YouTube
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -93,6 +95,9 @@ create policy "admin leggono lo storico" on public.schede_storico
   for select to authenticated using (public.is_admin());
 
 create index schede_data_ord_idx on public.schede (data_ord);
+
+-- Per un database creato prima dell'aggiunta di audio e video (ottobre 2026):
+-- alter table public.schede add column if not exists audio text, add column if not exists video text;
 
 -- Dimensione del database per la pagina "Stato" del pannello (la chiama solo il Worker con la chiave service_role)
 create or replace function public.dimensione_database() returns bigint

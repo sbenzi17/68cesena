@@ -9,6 +9,7 @@ const links = [
   { to: '/indice?campo=persone', campo: 'persone', label: 'Persone' },
   { to: '/indice?campo=formazione', campo: 'formazione', label: 'Formazione politica' },
   { to: '/indice?campo=parole', campo: 'parole', label: 'Parole chiave' },
+  { to: '/indice?campo=formato', campo: 'formato', label: 'Formato' },
 ]
 
 export default function Navigation() {

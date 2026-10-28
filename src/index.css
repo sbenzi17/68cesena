@@ -517,6 +517,42 @@ a.banner-slide:hover { text-decoration: none; }
   font-style: italic;
 }
 .thumb-caption:hover { color: var(--accent); }
+.thumb-formati {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  display: flex;
+  gap: 0.3rem;
+  z-index: 1;
+}
+.thumb-formato {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #faf5e8;
+  background: rgba(26,20,16,0.78);
+  padding: 0.15rem 0.45rem;
+}
+
+/* Audio e video nella scheda */
+.media-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  margin-top: 1.25rem;
+}
+.media-video:first-child { margin-top: 0; }
+.media-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.media-audio {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--paper);
+  border: 1px solid var(--border);
+}
+.media-audio:first-child { margin-top: 0; }
+.media-audio p { font-family: var(--sans); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.5rem; }
+.media-audio audio { width: 100%; }
 .thumb-more {
   font-family: var(--sans);
   font-style: normal;

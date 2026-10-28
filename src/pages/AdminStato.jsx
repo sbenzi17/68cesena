@@ -14,7 +14,7 @@ $$;
 revoke all on function public.dimensione_database() from public, anon, authenticated;
 grant execute on function public.dimensione_database() to service_role;`
 
-const cartelle = { large: 'Immagini grandi', thumbs: 'Miniature', pdf: 'PDF', config: 'Impostazioni (evento)' }
+const cartelle = { large: 'Immagini grandi', thumbs: 'Miniature', pdf: 'PDF', audio: 'Audio', config: 'Impostazioni (evento)' }
 
 function size(bytes) {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`

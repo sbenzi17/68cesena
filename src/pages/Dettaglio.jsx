@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getPhotoDetail, imageUrl, pdfUrl } from '../data/photos'
+import { getPhotoDetail, imageUrl, pdfUrl, audioUrl, formati } from '../data/photos'
 import HoverZoom from '../components/HoverZoom'
+import { VideoEmbed, AudioPlayer } from '../components/Media'
 
 function Field({ label, children }) {
   if (!children || (Array.isArray(children) && children.length === 0)) return null
@@ -58,7 +59,7 @@ export default function Dettaglio() {
           ) : src ? (
             // lente: passando il mouse compare il dettaglio ingrandito a fianco
             <HoverZoom key={src} src={src} alt={pages > 1 ? `${photo.titolo}, pagina ${page + 1}` : photo.titolo} />
-          ) : (
+          ) : !photo.video && !photo.audio && (
             <div className="hover-zoom-empty">Immagine in digitalizzazione</div>
           )}
           {src && !pdf && <p className="form-helper">Passa il mouse sull'immagine per vedere i dettagli ingranditi.</p>}
@@ -79,6 +80,8 @@ export default function Dettaglio() {
             </div>
           )}
 
+          <VideoEmbed url={photo.video} title={photo.titolo} />
+          <AudioPlayer src={audioUrl(photo)} label="Ascolta l'audio" />
         </div>
 
         <div className="detail-meta">
@@ -98,6 +101,7 @@ export default function Dettaglio() {
             <Field label="Evento">{photo.evento}</Field>
             <Field label="Fondo">{photo.fondo}</Field>
             <Field label="Serie">{photo.serie}</Field>
+            <Field label="Formato">{formati(photo).join(', ')}</Field>
             <Field label="Luogo di stampa">{photo.luogoStampa}</Field>
             <Field label="Tipologia">{photo.tipologia}</Field>
             <Field label="Supporto">{photo.supporto}</Field>

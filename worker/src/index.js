@@ -1,14 +1,17 @@
 // Cloudflare Worker al servizio del pannello admin:
-// - /?key=...   legge, carica ed elimina file nel bucket R2 (immagini, PDF e config/evento.json)
+// - /?key=...   legge, carica ed elimina file nel bucket R2 (immagini, PDF, audio e config/evento.json)
 // - /utenti     elenca, crea, modifica ed elimina gli amministratori (usa la chiave service_role di Supabase)
 // - /storico/ID elimina una riga dello storico delle modifiche
 // - /stato      spazio usato su R2 e dimensione del database, per la pagina "Stato" del pannello
 // Le scritture sono permesse solo a utenti con login Supabase presenti nella tabella `admin`.
 // Le immagini per il pubblico si leggono direttamente dall'URL pubblico del bucket, non da qui.
 
-const KEY_RE = /^((thumbs|large|pdf)\/[A-Za-z0-9._-]+\.(jpg|pdf)|config\/evento\.json)$/
-const contentTypes = { jpg: 'image/jpeg', pdf: 'application/pdf', json: 'application/json' }
-const MAX_BYTES = 25 * 1024 * 1024
+const KEY_RE = /^((thumbs|large)\/[A-Za-z0-9._-]+\.jpg|pdf\/[A-Za-z0-9._-]+\.pdf|audio\/[A-Za-z0-9._-]+\.(mp3|m4a|ogg|wav)|config\/evento\.json)$/
+const contentTypes = {
+  jpg: 'image/jpeg', pdf: 'application/pdf', json: 'application/json',
+  mp3: 'audio/mpeg', m4a: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav',
+}
+const MAX_BYTES = 95 * 1024 * 1024 // il piano gratuito dei Worker accetta richieste fino a 100 MB
 
 // ALLOWED_ORIGIN può elencare più indirizzi separati da virgola; in più è accettato localhost su qualsiasi porta
 // (prove in locale: per scrivere serve comunque il login da admin). env.ORIGIN è l'origine della richiesta in corso
