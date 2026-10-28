@@ -8,12 +8,13 @@
 const KEY_RE = /^(thumbs|large|pdf)\/[A-Za-z0-9._-]+\.(jpg|pdf)$/
 const MAX_BYTES = 25 * 1024 * 1024
 
-// ALLOWED_ORIGIN può elencare più indirizzi separati da virgola (il sito e le prove in locale);
-// env.ORIGIN è l'origine della richiesta in corso
+// ALLOWED_ORIGIN può elencare più indirizzi separati da virgola; in più è accettato localhost su qualsiasi porta
+// (prove in locale: per scrivere serve comunque il login da admin). env.ORIGIN è l'origine della richiesta in corso
 function cors(env) {
   const allowed = env.ALLOWED_ORIGIN.split(',').map(s => s.trim())
+  const ok = allowed.includes(env.ORIGIN) || /^http:\/\/localhost:\d+$/.test(env.ORIGIN)
   return {
-    'Access-Control-Allow-Origin': allowed.includes(env.ORIGIN) ? env.ORIGIN : allowed[0],
+    'Access-Control-Allow-Origin': ok ? env.ORIGIN : allowed[0],
     Vary: 'Origin',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
