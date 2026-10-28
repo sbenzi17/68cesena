@@ -23,7 +23,7 @@ src/
 ## Installazione Dipendenze
 
 ```bash
-cd archivio-fotografico-isr-fc-react
+cd 68cesena
 npm install
 ```
 

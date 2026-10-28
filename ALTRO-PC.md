@@ -4,17 +4,17 @@ Situazione al 27/10/2026: il sito è online e collegato al database.
 
 | Cosa | Dove |
 |---|---|
-| Sito | https://sbenzi17.github.io/archivio-fotografico-isr-fc-react/ |
+| Sito | https://sbenzi17.github.io/68cesena/ |
 | Database e login (Supabase) | https://supabase.com/dashboard, progetto «68/77 a Cesena» (accesso con GitHub) |
 | Immagini e PDF (Cloudflare R2) | https://dash.cloudflare.com, account Benzi580, bucket `archivio-foto` |
 | Worker dei caricamenti | `https://archivio-upload.archivio6877.workers.dev` |
-| Codice | GitHub `sbenzi17/archivio-fotografico-isr-fc-react`, branch `archivo-fotografico-v1` |
+| Codice | GitHub `sbenzi17/68cesena`, branch `archivo-fotografico-v1` |
 
 ## Da fare
 - [ ] **Contatore visite**: nel pannello, pagina **Stato** → sezione «Visite» → «Copia il testo», poi su supabase.com → SQL Editor → + New query → incolla → **Run**. Il contatore parte da quel momento.
 - [ ] **Google Search Console** (gratuito, serve per comparire bene su Google):
   1. Vai su https://search.google.com/search-console e accedi con l'account Google.
-  2. **Aggiungi proprietà** → tipo **«Prefisso URL»** → `https://sbenzi17.github.io/archivio-fotografico-isr-fc-react/`
+  2. **Aggiungi proprietà** → tipo **«Prefisso URL»** → `https://sbenzi17.github.io/68cesena/`
   3. Come metodo di verifica scegli **«Tag HTML»**: copia il codice `<meta name="google-site-verification" content="…">` e mandalo a Claude, che lo inserisce in `index.html` e ripubblica il sito. Poi premi **Verifica**.
   4. Menu **Sitemap** → scrivi `sitemap.xml` → **Invia**.
   5. Dopo qualche giorno, in **Pagine** si vede quante schede Google ha indicizzato.

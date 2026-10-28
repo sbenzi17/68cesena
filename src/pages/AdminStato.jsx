@@ -56,7 +56,7 @@ function Visite() {
 // Limiti dei piani gratuiti
 const R2_LIMITE = 10 * 1024 ** 3 // 10 GB
 const DB_LIMITE = 500 * 1024 ** 2 // 500 MB
-const REPO = 'https://api.github.com/repos/sbenzi17/archivio-fotografico-isr-fc-react'
+const REPO = 'https://api.github.com/repos/sbenzi17/68cesena'
 
 const SQL_DIMENSIONE = `create or replace function public.dimensione_database() returns bigint
 language sql security definer stable set search_path = '' as $$
