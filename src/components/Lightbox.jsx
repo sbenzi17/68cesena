@@ -25,8 +25,17 @@ export default function Lightbox({ photos, index, onClose, onPrev, onNext, link 
   return (
     <div className="lightbox open" onClick={(e) => { if (e.target.classList.contains('lightbox')) onClose() }}>
       <button className="lightbox-prev" aria-label="Precedente" onClick={onPrev}>&larr;</button>
-      <div className={`lightbox-img thumb-img ${photo.bg}${photo.large ? ' has-img' : ''}`} data-label={photo.label}>
-        {photo.large && <img src={photo.large} alt={photo.caption} />}
+      <div className={`lightbox-img thumb-img ${photo.bg}${photo.large || photo.video ? ' has-img' : ''}${photo.video ? ' lightbox-video' : ''}`} data-label={photo.label}>
+        {photo.video ? (
+          // video di YouTube: parte subito; chiudendo l'ingrandimento si ferma
+          <iframe
+            key={photo.id}
+            src={`${photo.video}?autoplay=1&rel=0`}
+            title={photo.caption}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+          />
+        ) : photo.large && <img src={photo.large} alt={photo.caption} />}
         <div className="lightbox-caption">
           {photo.caption}
           {link && <> · <Link to={`/foto/${photo.id}`} onClick={onClose}>scheda completa</Link></>}

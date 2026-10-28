@@ -287,6 +287,8 @@ export function nextId() {
 }
 
 const hasImage = (r) => Boolean(r.imgData || r.immagini?.length)
+// ha qualcosa da mostrare in miniatura: un'immagine oppure un video di YouTube
+const hasVisual = (r) => hasImage(r) || Boolean(youtubeId(r.video))
 
 export function imageUrl(record, size = 'thumbs', index = 0) {
   if (!record) return null
@@ -317,6 +319,7 @@ export function toThumb(r) {
     caption: [r.titolo, shortPlace(r)].filter(Boolean).join(' · '),
     src,
     large: imageUrl(r, 'large') || youtubeThumb(r.video),
+    video: youtubeEmbed(r.video), // l'ingrandimento mostra il video al posto dell'immagine
     formati: formati(r).filter(f => f !== 'Immagini'),
   }
 }
@@ -334,12 +337,12 @@ const byAdded = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '') |
 
 // Per la home: niente volantini
 export function recentPhotos() {
-  return allRecords().filter(r => hasImage(r) && r.serie !== 'Volantini').sort(byAdded).slice(0, 12).map(toThumb)
+  return allRecords().filter(r => hasVisual(r) && r.serie !== 'Volantini').sort(byAdded).slice(0, 12).map(toThumb)
 }
 
 // Le ultime schede caricate (volantini esclusi), per il banner della home
 export function latestUploads(n = 5) {
-  return allRecords().filter(r => hasImage(r) && r.serie !== 'Volantini').sort(byAdded).slice(0, n)
+  return allRecords().filter(r => hasVisual(r) && r.serie !== 'Volantini').sort(byAdded).slice(0, n)
 }
 
 const year = (r) => (r.dataOrd || '').slice(0, 4)

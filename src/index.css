@@ -1407,6 +1407,14 @@ a.banner-slide:hover { text-decoration: none; }
   object-fit: contain;
 }
 .lightbox-caption a { color: inherit; text-decoration: underline; }
+.lightbox-img.lightbox-video { width: min(90vw, calc(80vh * 16 / 9)); }
+.lightbox-video iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #000;
+}
 .banner-slide.has-img {
   background-size: cover;
   background-position: center 30%;

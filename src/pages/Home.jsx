@@ -4,7 +4,7 @@ import Banner from '../components/Banner'
 import Thumb from '../components/Thumb'
 import Lightbox from '../components/Lightbox'
 import { useLightbox } from '../components/Lightbox'
-import { recentPhotos, latestUploads, imageUrl, getRecords, getEvento, eventoVisibile, eventoImageUrl, eventoPeriodo } from '../data/photos'
+import { recentPhotos, latestUploads, imageUrl, youtubeThumb, getRecords, getEvento, eventoVisibile, eventoImageUrl, eventoPeriodo } from '../data/photos'
 
 // Sezione informativa dell'evento in evidenza (sotto il banner, solo se l'admin l'ha attivata)
 function Evento({ evento }) {
@@ -42,7 +42,7 @@ export default function Home() {
       onClick: () => document.getElementById('evento')?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
     }] : []),
     ...latestUploads(5).map(r => ({
-      image: imageUrl(r, 'large'),
+      image: imageUrl(r, 'large') || youtubeThumb(r.video),
       title: r.titolo,
       description: [r.citta, r.data].filter(Boolean).join(' — '),
       href: `/foto/${r.id}`,
