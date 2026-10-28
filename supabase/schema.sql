@@ -93,3 +93,11 @@ create policy "admin leggono lo storico" on public.schede_storico
   for select to authenticated using (public.is_admin());
 
 create index schede_data_ord_idx on public.schede (data_ord);
+
+-- Dimensione del database per la pagina "Stato" del pannello (la chiama solo il Worker con la chiave service_role)
+create or replace function public.dimensione_database() returns bigint
+language sql security definer stable set search_path = '' as $$
+  select pg_database_size(current_database())
+$$;
+revoke all on function public.dimensione_database() from public, anon, authenticated;
+grant execute on function public.dimensione_database() to service_role;

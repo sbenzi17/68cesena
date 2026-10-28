@@ -132,7 +132,15 @@ export async function saveRecord(record, pages, pdf) {
     } else if (pdf === null) {
       r.pdf = null
     }
-    const { data, error } = await writeRow(toDb(r), Boolean(getPhotoDetail(r.id)))
+    const exists = Boolean(getPhotoDetail(r.id))
+    const { data, error } = await writeRow(toDb(r), exists)
+    // casi tipici quando un altro admin lavora nello stesso momento
+    if (error?.code === '23505') {
+      throw new Error(`esiste già una scheda con identificativo ${r.id}, creata nel frattempo da un altro amministratore. Ricarica la pagina e riprova: il nuovo identificativo sarà quello successivo.`)
+    }
+    if (error?.code === 'PGRST116') {
+      throw new Error(`la scheda ${r.id} non esiste più (eliminata nel frattempo da un altro amministratore). Puoi ripristinarla dallo Storico.`)
+    }
     if (error) throw error
     Object.assign(r, fromDb(data))
   } else {

@@ -12,6 +12,7 @@ import Admin from './pages/Admin'
 import AdminEdit from './pages/AdminEdit'
 import AdminStorico from './pages/AdminStorico'
 import AdminUtenti from './pages/AdminUtenti'
+import AdminStato from './pages/AdminStato'
 import Collabora from './pages/Collabora'
 import Contatto from './pages/Contatto'
 import './App.css'
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/admin/foto/:id" element={<AdminEditPage />} />
           <Route path="/admin/storico" element={<AdminStorico />} />
           <Route path="/admin/utenti" element={<AdminUtenti />} />
+          <Route path="/admin/stato" element={<AdminStato />} />
         </Route>
       </Routes>
     </BrowserRouter>

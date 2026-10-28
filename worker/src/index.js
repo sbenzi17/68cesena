@@ -2,6 +2,7 @@
 // - /?key=...   legge, carica ed elimina file nel bucket R2
 // - /utenti     elenca, crea, modifica ed elimina gli amministratori (usa la chiave service_role di Supabase)
 // - /storico/ID elimina una riga dello storico delle modifiche
+// - /stato      spazio usato su R2 e dimensione del database, per la pagina "Stato" del pannello
 // Le scritture sono permesse solo a utenti con login Supabase presenti nella tabella `admin`.
 // Le immagini per il pubblico si leggono direttamente dall'URL pubblico del bucket, non da qui.
 
@@ -140,6 +141,26 @@ async function storico(request, env, url) {
   return reply(env, 200, { ok: true })
 }
 
+// Stato dei servizi per la pagina "Stato" del pannello: spazio su R2 e dimensione del database
+async function stato(request, env) {
+  if (!(await adminId(request, env))) return reply(env, 401, { error: 'non autorizzato' })
+  const r2 = { bytes: 0, objects: 0, perCartella: {} }
+  let cursor
+  do {
+    const page = await env.BUCKET.list({ cursor, limit: 1000 })
+    for (const o of page.objects) {
+      const dir = o.key.split('/')[0]
+      r2.bytes += o.size
+      r2.objects++
+      r2.perCartella[dir] = (r2.perCartella[dir] || 0) + o.size
+    }
+    cursor = page.truncated ? page.cursor : null
+  } while (cursor)
+  // la funzione dimensione_database() va creata una volta nel database (vedi supabase/schema.sql)
+  const dbBytes = await service(env, '/rest/v1/rpc/dimensione_database', 'POST', {}).catch(() => null)
+  return reply(env, 200, { r2, db: { bytes: typeof dbBytes === 'number' ? dbBytes : null } })
+}
+
 export default {
   async fetch(request, workerEnv) {
     const env = { ...workerEnv, ORIGIN: request.headers.get('Origin') || '' }
@@ -148,6 +169,7 @@ export default {
     try {
       if (url.pathname.startsWith('/utenti')) return await utenti(request, env, url)
       if (url.pathname.startsWith('/storico/')) return await storico(request, env, url)
+      if (url.pathname === '/stato') return await stato(request, env)
       return await files(request, env, url)
     } catch (err) {
       return reply(env, 500, { error: err.message })

@@ -56,5 +56,8 @@ export const createUser = (u) => worker('/utenti', { method: 'POST', body: JSON.
 export const updateUser = (id, changes) => worker(`/utenti/${id}`, { method: 'PATCH', body: JSON.stringify(changes), contentType: 'application/json' })
 export const removeUser = (id) => worker(`/utenti/${id}`, { method: 'DELETE' })
 
+// Spazio usato su R2 e dimensione del database (pagina "Stato")
+export const loadStato = () => worker('/stato')
+
 // Righe dello storico: si eliminano solo passando dal Worker
 export const deleteStoricoRow = (id) => worker(`/storico/${id}`, { method: 'DELETE' })
