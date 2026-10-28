@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase, hasBackend, isAdmin } from '../lib/supabase'
 import { loadCatalogo } from '../data/photos'
 import PasswordInput from '../components/PasswordInput'
+import { usePageMeta } from '../lib/meta'
 
 export default function Login() {
+  usePageMeta('Area riservata', null, { noindex: true })
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)

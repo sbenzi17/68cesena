@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-// Le slide scorrono da sole ogni 5 secondi (si fermano mentre il mouse è sopra il banner)
+// Le slide scorrono da sole ogni 5 secondi: si fermano col mouse sopra, con il pulsante pausa
+// e partono già ferme se il sistema chiede di ridurre i movimenti (accessibilità)
+const riduciMovimento = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
 export default function Banner({ slides }) {
   const [current, setCurrent] = useState(0)
+  const [pausa, setPausa] = useState(riduciMovimento)
   const timerRef = useRef(null)
 
   const stop = () => {
@@ -13,6 +17,7 @@ export default function Banner({ slides }) {
 
   const start = () => {
     stop()
+    if (pausa) return
     timerRef.current = setInterval(() => {
       setCurrent((c) => (c + 1) % slides.length)
     }, 5000)
@@ -21,14 +26,14 @@ export default function Banner({ slides }) {
   useEffect(() => {
     start()
     return stop
-  }, [slides.length])
+  }, [slides.length, pausa])
 
   const goTo = (i) => { setCurrent(((i % slides.length) + slides.length) % slides.length); start() }
 
   if (slides.length === 0) return null
 
   return (
-    <section className="banner" onMouseEnter={stop} onMouseLeave={start}>
+    <section className="banner" aria-roledescription="carosello" aria-label="In evidenza" onMouseEnter={stop} onMouseLeave={start}>
       {slides.map((s, i) => {
         // una slide porta a una scheda (href) oppure esegue un'azione (onClick, es. scorrere all'evento)
         const props = {
@@ -57,10 +62,20 @@ export default function Banner({ slides }) {
           <button
             key={i}
             className={`banner-dot${i === current ? ' active' : ''}`}
-            aria-label={`Foto ${i + 1}`}
+            aria-label={`Foto ${i + 1} di ${slides.length}`}
+            aria-current={i === current ? 'true' : undefined}
             onClick={() => goTo(i)}
           />
         ))}
+        <button
+          type="button"
+          className="banner-pausa"
+          onClick={() => setPausa(p => !p)}
+          aria-label={pausa ? 'Riprendi lo scorrimento delle foto' : 'Ferma lo scorrimento delle foto'}
+          title={pausa ? 'Riprendi' : 'Pausa'}
+        >
+          {pausa ? '▶' : '❚❚'}
+        </button>
       </div>
     </section>
   )

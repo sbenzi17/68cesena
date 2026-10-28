@@ -15,6 +15,7 @@ import AdminUtenti from './pages/AdminUtenti'
 import AdminStato from './pages/AdminStato'
 import AdminEvento from './pages/AdminEvento'
 import AdminAnteprima from './pages/AdminAnteprima'
+import AdminTesti from './pages/AdminTesti'
 import Collabora from './pages/Collabora'
 import Contatto from './pages/Contatto'
 import './App.css'
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/admin/stato" element={<AdminStato />} />
           <Route path="/admin/evento" element={<AdminEvento />} />
           <Route path="/admin/anteprima" element={<AdminAnteprima />} />
+          <Route path="/admin/testi" element={<AdminTesti />} />
         </Route>
       </Routes>
     </BrowserRouter>

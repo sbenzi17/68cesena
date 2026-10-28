@@ -4,7 +4,8 @@ import Banner from '../components/Banner'
 import Thumb from '../components/Thumb'
 import Lightbox from '../components/Lightbox'
 import { useLightbox } from '../components/Lightbox'
-import { recentPhotos, latestUploads, imageUrl, youtubeThumb, getRecords, getEvento, eventoVisibile, eventoImageUrl, eventoPeriodo } from '../data/photos'
+import { usePageMeta } from '../lib/meta'
+import { recentPhotos, latestUploads, imageUrl, videoInfo, getRecords, getEvento, eventoVisibile, eventoImageUrl, eventoPeriodo } from '../data/photos'
 
 // Sezione informativa dell'evento in evidenza (sotto il banner, solo se l'admin l'ha attivata)
 function Evento({ evento }) {
@@ -25,6 +26,7 @@ function Evento({ evento }) {
 }
 
 export default function Home() {
+  usePageMeta(null)
   const navigate = useNavigate()
   const photos = useMemo(() => recentPhotos(), [])
   const total = useMemo(() => getRecords().length, [])
@@ -41,12 +43,13 @@ export default function Home() {
       description: eventoPeriodo(evento),
       onClick: () => document.getElementById('evento')?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
     }] : []),
-    ...latestUploads(5).map(r => ({
-      image: imageUrl(r, 'large') || youtubeThumb(r.video),
+    // il banner ha bisogno di un'immagine: i file video senza immagine restano fuori
+    ...latestUploads(8).map(r => ({
+      image: imageUrl(r, 'large') || videoInfo(r.video)?.thumb,
       title: r.titolo,
       description: [r.citta, r.data].filter(Boolean).join(' — '),
       href: `/foto/${r.id}`,
-    })),
+    })).filter(s => s.image).slice(0, 5),
   ], [evento])
 
   const onSubmit = (e) => {

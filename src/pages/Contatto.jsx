@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { usePageMeta } from '../lib/meta'
 
 // Invio tramite formsubmit.co, servizio gratuito che inoltra il modulo per email.
 // Al primo messaggio arriva a EMAIL una richiesta di attivazione da confermare una sola volta.
@@ -7,6 +8,7 @@ const EMAIL = 'benzi580@gmail.com'
 const FORM_ENDPOINT = `https://formsubmit.co/ajax/${EMAIL}`
 
 export default function Contatto() {
+  usePageMeta('Contattaci', "Scrivi all'archivio 1968/1977 a Cesena: domande, correzioni, ricordi da segnalare.")
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
   const [sending, setSending] = useState(false)

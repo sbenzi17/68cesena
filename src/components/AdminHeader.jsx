@@ -26,6 +26,7 @@ export default function AdminHeader() {
           <NavLink to="/admin/anteprima">Anteprima</NavLink>
           {hasBackend && <NavLink to="/admin/storico">Storico</NavLink>}
           {hasBackend && <NavLink to="/admin/evento">Evento</NavLink>}
+          {hasBackend && <NavLink to="/admin/testi">Testi</NavLink>}
           {hasBackend && <NavLink to="/admin/utenti">Utenti</NavLink>}
           {hasBackend && <NavLink to="/admin/stato">Stato</NavLink>}
           <a href="#" onClick={logout}>Esci</a>

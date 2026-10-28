@@ -1,6 +1,57 @@
 import { useEffect, useState } from 'react'
 import { supabase, loadStato } from '../lib/supabase'
-import { getRecords, imageUrl } from '../data/photos'
+import { getRecords, imageUrl, loadVisite, SQL_VISITE } from '../data/photos'
+
+const oggiRoma = (offset = 0) => {
+  const d = new Date()
+  d.setDate(d.getDate() - offset)
+  return d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' })
+}
+
+// Visite: numeri principali e grafico degli ultimi 30 giorni
+function Visite() {
+  const [dati, setDati] = useState(null)
+  const [copiato, setCopiato] = useState(false)
+  useEffect(() => { loadVisite().then(setDati) }, [])
+  if (!dati) return <p className="muted-text">Caricamento delle visite…</p>
+  if (dati.error) {
+    return (
+      <section className="admin-panel">
+        <p>Per contare le visite va creata una piccola tabella nel database, una volta sola:
+          su supabase.com apri il progetto → <strong>SQL Editor</strong> → <strong>+ New query</strong>,
+          incolla il testo qui sotto, premi <strong>Run</strong> e ricarica questa pagina.
+          Da quel momento il sito comincia a contare.</p>
+        <pre className="stato-sql">{SQL_VISITE}</pre>
+        <button type="button" className="btn btn-secondary" onClick={() => navigator.clipboard.writeText(SQL_VISITE).then(() => setCopiato(true))}>
+          {copiato ? 'Copiato' : 'Copia il testo'}
+        </button>
+      </section>
+    )
+  }
+  const perGiorno = Object.fromEntries(dati.righe.map(r => [r.giorno, r.visite]))
+  const somma = (giorni) => Array.from({ length: giorni }, (_, i) => perGiorno[oggiRoma(i)] || 0).reduce((a, b) => a + b, 0)
+  const mese = oggiRoma().slice(0, 7)
+  const ultimi30 = Array.from({ length: 30 }, (_, i) => oggiRoma(29 - i)).map(g => ({ g, n: perGiorno[g] || 0 }))
+  const max = Math.max(1, ...ultimi30.map(d => d.n))
+  return (
+    <section className="admin-panel">
+      <ul className="stato-numeri">
+        <li><strong>{perGiorno[oggiRoma()] || 0}</strong> oggi</li>
+        <li><strong>{perGiorno[oggiRoma(1)] || 0}</strong> ieri</li>
+        <li><strong>{somma(7)}</strong> ultimi 7 giorni</li>
+        <li><strong>{dati.righe.filter(r => r.giorno.startsWith(mese)).reduce((a, r) => a + r.visite, 0)}</strong> questo mese</li>
+        <li><strong>{dati.righe.reduce((a, r) => a + r.visite, 0)}</strong> in tutto</li>
+      </ul>
+      <div className="stato-grafico" role="img" aria-label="Visite degli ultimi 30 giorni">
+        {ultimi30.map(d => (
+          <span key={d.g} style={{ height: `${(d.n / max) * 100}%` }} title={`${new Date(`${d.g}T12:00:00`).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}: ${d.n} visite`} />
+        ))}
+      </div>
+      <p className="form-helper">Ultimi 30 giorni (passa il mouse su una colonna per il dettaglio). Una visita = una persona che apre il sito;
+        non contano il pannello, l'anteprima e gli admin collegati. Senza cookie né dati personali.</p>
+    </section>
+  )
+}
 
 // Limiti dei piani gratuiti
 const R2_LIMITE = 10 * 1024 ** 3 // 10 GB
@@ -115,6 +166,9 @@ export default function AdminStato() {
       </div>
 
       {errore && <p className="form-error">Impossibile leggere lo spazio usato: {errore}</p>}
+
+      <h2 className="stato-section">Visite</h2>
+      <Visite />
 
       <h2 className="stato-section">Spazio usato</h2>
       {dati ? (

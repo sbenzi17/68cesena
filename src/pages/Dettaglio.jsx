@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getPhotoDetail, imageUrl, pdfUrl, audioUrl, formati } from '../data/photos'
 import HoverZoom from '../components/HoverZoom'
 import { VideoEmbed, AudioPlayer } from '../components/Media'
+import { usePageMeta } from '../lib/meta'
 
 function Field({ label, children }) {
   if (!children || (Array.isArray(children) && children.length === 0)) return null
@@ -26,6 +27,13 @@ export default function Dettaglio() {
   const photo = getPhotoDetail(id)
   const [page, setPage] = useState(0)
   useEffect(() => setPage(0), [id])
+  // stessa descrizione delle pagine statiche generate per Google (scripts/seo.mjs)
+  usePageMeta(photo ? photo.titolo : `Scheda ${id} non trovata`, photo && [
+    [photo.serie, [photo.citta, photo.data].filter(Boolean).join(', ')].filter(Boolean).join(' — '),
+    photo.autore && photo.autore !== 'Sconosciuto' && `Autore: ${photo.autore}`,
+    photo.persone?.length && `Persone: ${photo.persone.join(', ')}`,
+    photo.parole?.length && `Parole chiave: ${photo.parole.join(', ')}`,
+  ].filter(Boolean).join('. '), { noindex: !photo })
 
   if (!photo) {
     return (
@@ -85,7 +93,7 @@ export default function Dettaglio() {
         </div>
 
         <div className="detail-meta">
-          <h2>{photo.titolo}</h2>
+          <h1>{photo.titolo}</h1>
           <p className="detail-subtitle">{subtitle}</p>
 
           <dl>

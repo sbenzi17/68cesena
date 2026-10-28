@@ -99,6 +99,21 @@ create index schede_data_ord_idx on public.schede (data_ord);
 -- Per un database creato prima dell'aggiunta di audio e video (ottobre 2026):
 -- alter table public.schede add column if not exists audio text, add column if not exists video text;
 
+-- Contatore delle visite (una riga per giorno, ora italiana): scrive chiunque tramite la funzione, leggono solo gli admin
+create table if not exists public.visite (
+  giorno date primary key,
+  visite integer not null default 0
+);
+alter table public.visite enable row level security;
+create policy "admin leggono le visite" on public.visite
+  for select to authenticated using (public.is_admin());
+create or replace function public.registra_visita() returns void
+language sql security definer set search_path = '' as $$
+  insert into public.visite (giorno, visite) values ((now() at time zone 'Europe/Rome')::date, 1)
+  on conflict (giorno) do update set visite = public.visite.visite + 1;
+$$;
+grant execute on function public.registra_visita() to anon, authenticated;
+
 -- Dimensione del database per la pagina "Stato" del pannello (la chiama solo il Worker con la chiave service_role)
 create or replace function public.dimensione_database() returns bigint
 language sql security definer stable set search_path = '' as $$

@@ -1,19 +1,25 @@
-import { youtubeEmbed } from '../data/photos'
+import { videoInfo } from '../data/photos'
 
-// Video di YouTube incorporato (versione senza cookie)
-export function VideoEmbed({ url, title = 'Video' }) {
-  const src = youtubeEmbed(url)
-  if (!src) return null
+// Video incorporato: YouTube (versione senza cookie) oppure file video con il lettore del browser.
+// `autoplay` fa partire il video appena compare (usato nell'ingrandimento delle miniature)
+export function VideoEmbed({ url, info = videoInfo(url), title = 'Video', autoplay = false }) {
+  if (!info) return null
   return (
     <div className="media-video">
-      <iframe
-        src={src}
-        title={title}
-        loading="lazy"
-        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        referrerPolicy="strict-origin-when-cross-origin"
-      />
+      {info.tipo === 'youtube' ? (
+        <iframe
+          src={`${info.embed}${autoplay ? '?autoplay=1&rel=0' : '?rel=0'}`}
+          title={title}
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      ) : (
+        <video src={info.src} controls preload="metadata" autoPlay={autoplay} playsInline title={title}>
+          Il tuo browser non riesce a riprodurre questo video: <a href={info.src}>aprilo qui</a>.
+        </video>
+      )}
     </div>
   )
 }

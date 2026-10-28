@@ -16,8 +16,11 @@ Situazione al 27/10/2026: il sito è online e collegato al database.
 3. Tutto viene salvato subito online, da qualsiasi computer.
    - **Schede**: modifica di tutti i campi; persone, formazioni e parole chiave si scrivono una per riga. Si possono aggiungere, togliere, riordinare e sostituire le immagini. Per i documenti completi (i Bollettini) nella scheda c'è solo la prima pagina come immagine, mentre il documento intero è un PDF: nella sezione «PDF del documento completo» lo carichi già pronto o lo crei da più immagini. Con lo stato «Sospesa» la scheda resta visibile solo agli admin.
    - **Storico**: chi ha cambiato cosa e quando, con il prima e il dopo. Il pulsante «Ripristina» riporta la scheda com'era, anche se era stata eliminata.
+   - **Anteprima**: il sito come lo vede un visitatore, senza uscire dal pannello.
+   - **Testi**: il testo in alto nel footer.
+   - **Video e audio** (nella scheda): video = link di YouTube o link diretto a un file video (.mp4…); audio = file caricato su R2. Nelle schede esistenti i file stanno nel riquadro chiuso «Modifica i file».
    - **Evento**: un evento in evidenza (titolo, date, testo, immagine). Se è attivo, la sua immagine è la prima del banner e sotto il banner compare la sua sezione; dopo la data di fine sparisce da solo.
-   - **Stato**: spazio usato su R2 e nel database, controlli di funzionamento e ultimo ping anti-pausa.
+   - **Stato**: visite, spazio usato su R2 e nel database, controlli di funzionamento, ping anti-pausa (anche a mano).
    - **Utenti**: per aggiungere o togliere amministratori e reimpostare la password di un altro admin. Nella sezione «Il mio account» cambi la tua password.
 4. Il pulsante **Esporta catalogo** scarica un CSV con le stesse colonne dell'Excel.
 5. Password dimenticata: un altro admin la reimposta dalla pagina **Utenti**. Se sei l'unico admin, fallo da Supabase: Authentication → Users → utente → Reset password.
@@ -33,7 +36,7 @@ npm install
 ```
 Poi, come sempre:
 - `npm run dev`: prova in locale. Attenzione: usa il database vero, quindi le modifiche fatte dall'admin in locale sono reali.
-- `npm run deploy`: pubblica il sito.
+- `npm run deploy`: pubblica il sito. La build genera anche una pagina per ogni scheda e la `sitemap.xml` per Google (`scripts/seo.mjs`): ripubblicare ogni tanto tiene la sitemap aggiornata con le schede nuove.
 - `git add -A`, `git commit -m "..."`, `git push`: salva il codice su GitHub.
 
 Il file `.env.production` (URL e chiavi pubbliche) è già nel repo, quindi la build si collega da sola a Supabase e R2.

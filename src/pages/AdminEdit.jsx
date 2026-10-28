@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   getPhotoDetail, imageUrl, pdfUrl, pdfFromImages, pdfFirstPage, saveRecord, deleteRecord, nextId, distinctValues,
-  hasMediaColumns, youtubeId, audioUrl, SQL_MEDIA,
+  hasMediaColumns, audioUrl, SQL_MEDIA, videoInfo, SCONOSCIUTO,
 } from '../data/photos'
 import { VideoEmbed, AudioPlayer } from '../components/Media'
 import { precisioni, splitOrd, joinOrd, IT_PATTERN } from '../data/dates'
@@ -102,9 +102,11 @@ export default function AdminEdit() {
   const [zoom, setZoom] = useState(null)
   // PDF del documento completo: null = invariato, 'togli' = da eliminare, { blob, label } = nuovo
   const [pdf, setPdf] = useState(null)
-  // audio: null = invariato, 'togli' = da eliminare, File = nuovo; video: link di YouTube
+  // audio: null = invariato, 'togli' = da eliminare, File = nuovo; video: link di YouTube o di un file video
   const [audio, setAudio] = useState(null)
   const [video, setVideo] = useState(original?.video || '')
+  // nelle schede esistenti la parte dei file è chiusa: si apre solo se serve cambiarli
+  const [filesOpen, setFilesOpen] = useState(isNew)
   const audioPreview = useMemo(() => audio instanceof File ? URL.createObjectURL(audio) : null, [audio])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -183,6 +185,7 @@ export default function AdminEdit() {
     record.status = form.get('status')
     record.orientamento = form.get('orientamento')
     for (const [k] of textFields) record[k] = (form.get(k) || '').trim()
+    record.autore = record.autore || SCONOSCIUTO
     for (const [k] of listFields) record[k] = (form.get(k) || '').split('\n').map(s => s.trim()).filter(Boolean)
     record.note = (form.get('note') || '').trim()
     const date = joinOrd(form.get('dataOrd'), form.get('dataPrecisione'), form.get('dataFine'))
@@ -194,8 +197,8 @@ export default function AdminEdit() {
     }
     record.dataOrd = date.value
     if (hasMediaColumns()) {
-      if (video.trim() && !youtubeId(video)) {
-        setError('Il link del video non è un indirizzo di YouTube valido (es. https://www.youtube.com/watch?v=…).')
+      if (video.trim() && !videoInfo(video)) {
+        setError('Il link del video non è valido: serve un link di YouTube o il link diretto a un file video (.mp4, .webm, .mov).')
         return
       }
       record.video = video.trim()
@@ -251,13 +254,13 @@ export default function AdminEdit() {
                 <ZoomIcon />
               </button>
             </div>
-          ) : (
+          ) : (isNew || !(original.video || original.audio)) && (
             <div className="hover-zoom-empty">Nessuna immagine</div>
           )}
-          <p className="form-helper">Passa il mouse sull'immagine per vedere i dettagli ingranditi; clic per aprirla a schermo intero.</p>
+          {current && <p className="form-helper">Passa il mouse sull'immagine per vedere i dettagli ingranditi; clic per aprirla a schermo intero.</p>}
 
-          <h3 className="page-editor-title">Pagine ({pages.length})</h3>
-          {pages.length > 0 && (
+          {pages.length > 1 && <h3 className="page-editor-title">Pagine ({pages.length})</h3>}
+          {(pages.length > 1 || (filesOpen && pages.length > 0)) && (
             <ol className="page-editor">
               {pages.map((p, i) => (
                 <li key={p.key} className={p === current ? 'active' : ''}>
@@ -265,7 +268,7 @@ export default function AdminEdit() {
                     <img src={p.url} alt="" />
                     <span>{i + 1}{p.file ? ' · nuova' : ''}</span>
                   </button>
-                  <div className="page-editor-actions">
+                  {filesOpen && <div className="page-editor-actions">
                     <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title="Sposta prima">&larr;</button>
                     <button type="button" onClick={() => move(i, 1)} disabled={i === pages.length - 1} title="Sposta dopo">&rarr;</button>
                     <label title="Sostituisci">
@@ -273,11 +276,23 @@ export default function AdminEdit() {
                       <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => replace(i, e.target.files?.[0])} hidden />
                     </label>
                     <button type="button" onClick={() => remove(i)} title="Togli pagina">&times;</button>
-                  </div>
+                  </div>}
                 </li>
               ))}
             </ol>
           )}
+
+          {/* file già presenti, solo da consultare */}
+          {!isNew && (
+            <>
+              {original.pdf && <p style={{ marginTop: '1rem' }}><a href={pdfUrl(original)} target="_blank" rel="noreferrer" className="btn btn-secondary">Apri il PDF</a></p>}
+              {original.video && <VideoEmbed url={original.video} title={original.titolo} />}
+              <AudioPlayer src={audioUrl(original)} label="Audio" />
+            </>
+          )}
+
+          <details className="admin-files" open={isNew} onToggle={(e) => setFilesOpen(e.currentTarget.open)}>
+            <summary>{isNew ? 'File della scheda' : 'Modifica i file (immagini, PDF, video, audio)'}</summary>
           <div className="form-group">
             <label htmlFor="file">{pages.length ? 'Aggiungi pagine' : 'Carica immagini'}</label>
             <input type="file" id="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => { add(e.target.files); e.target.value = '' }} />
@@ -321,11 +336,11 @@ export default function AdminEdit() {
               {hasMediaColumns() ? (
                 <>
                   <div className="form-group">
-                    <label htmlFor="video">Video (link di YouTube)</label>
-                    <input type="url" id="video" value={video} onChange={(e) => setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" />
-                    {video.trim() && !youtubeId(video) && <p className="form-error">Non è un link di YouTube valido.</p>}
+                    <label htmlFor="video">Video (link di YouTube o link diretto a un file video)</label>
+                    <input type="url" id="video" value={video} onChange={(e) => setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…  oppure  https://…/video.mp4" />
+                    {video.trim() && !videoInfo(video) && <p className="form-error">Link non valido: serve YouTube o un file .mp4, .webm, .mov.</p>}
                   </div>
-                  {youtubeId(video) && <VideoEmbed url={video} />}
+                  {videoInfo(video) && video !== original.video && <VideoEmbed url={video} />}
 
                   <div className="form-group" style={{ marginTop: '1.25rem' }}>
                     {audio === 'togli' ? (
@@ -336,10 +351,7 @@ export default function AdminEdit() {
                         <AudioPlayer src={audioPreview} label="Anteprima" />
                       </>
                     ) : original.audio ? (
-                      <>
-                        <AudioPlayer src={audioUrl(original)} label="Audio attuale" />
-                        <p style={{ marginTop: '0.5rem' }}><button type="button" className="action" onClick={() => setAudio('togli')}>Togli l'audio</button></p>
-                      </>
+                      <p><button type="button" className="action" onClick={() => setAudio('togli')}>Togli l'audio attuale</button></p>
                     ) : null}
                     <label htmlFor="audio-file" style={{ marginTop: '0.75rem' }}>{original.audio ? 'Sostituisci il file audio' : 'Carica un file audio'}</label>
                     <input
@@ -367,6 +379,7 @@ export default function AdminEdit() {
               )}
             </fieldset>
           )}
+          </details>
         </div>
 
         <div className="detail-meta">

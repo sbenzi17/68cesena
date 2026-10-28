@@ -43,14 +43,59 @@ export const SQL_MEDIA = `alter table public.schede
   add column if not exists video text;
 notify pgrst, 'reload schema';`
 
-// Video: solo link di YouTube. Restituisce l'identificativo del video, oppure null se il link non è valido
-export function youtubeId(url) {
-  const m = (url || '').trim().match(/^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+// Contatore delle visite: una riga per giorno nella tabella `visite` (vedi supabase/schema.sql)
+export const SQL_VISITE = `create table if not exists public.visite (
+  giorno date primary key,
+  visite integer not null default 0
+);
+alter table public.visite enable row level security;
+drop policy if exists "admin leggono le visite" on public.visite;
+create policy "admin leggono le visite" on public.visite
+  for select to authenticated using (public.is_admin());
+create or replace function public.registra_visita() returns void
+language sql security definer set search_path = '' as $$
+  insert into public.visite (giorno, visite) values ((now() at time zone 'Europe/Rome')::date, 1)
+  on conflict (giorno) do update set visite = public.visite.visite + 1;
+$$;
+grant execute on function public.registra_visita() to anon, authenticated;
+notify pgrst, 'reload schema';`
+
+// Una visita per sessione del browser; non contano il pannello, l'anteprima e chi ha fatto login. Niente cookie
+export async function registraVisita() {
+  if (!hasBackend || window.self !== window.top || location.pathname.includes('/admin')) return
+  try {
+    if (sessionStorage.getItem('visita-registrata')) return
+    sessionStorage.setItem('visita-registrata', '1')
+  } catch {
+    return
+  }
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) await supabase.rpc('registra_visita') // se la tabella non esiste ancora, l'errore si ignora
+}
+
+// Visite degli ultimi giorni, per la pagina "Stato" del pannello: [{ giorno, visite }] o { error }
+export async function loadVisite() {
+  const { data, error } = await supabase.from('visite').select('giorno,visite').order('giorno', { ascending: false }).limit(400)
+  return error ? { error } : { righe: data }
+}
+
+// Video: un link di YouTube oppure il link diretto a un file video su un altro sito (niente caricamenti da noi)
+function youtubeId(url) {
+  const m = url.match(/^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)
   return m ? m[1] : null
 }
-// versione "senza cookie" di YouTube: niente tracciamento finché il video non parte
-export const youtubeEmbed = (url) => youtubeId(url) && `https://www.youtube-nocookie.com/embed/${youtubeId(url)}`
-export const youtubeThumb = (url) => youtubeId(url) && `https://img.youtube.com/vi/${youtubeId(url)}/hqdefault.jpg`
+const VIDEO_FILE_RE = /^https?:\/\/[^\s?#]+\.(mp4|webm|ogv|ogg|mov|m4v)([?#]\S*)?$/i
+
+// { tipo: 'youtube', embed, thumb } | { tipo: 'file', src } | null se il link non è valido.
+// YouTube nella versione "senza cookie": niente tracciamento finché il video non parte
+export function videoInfo(url) {
+  const u = (url || '').trim()
+  if (!u) return null
+  const id = youtubeId(u)
+  if (id) return { tipo: 'youtube', embed: `https://www.youtube-nocookie.com/embed/${id}`, thumb: `https://img.youtube.com/vi/${id}/hqdefault.jpg` }
+  if (VIDEO_FILE_RE.test(u)) return { tipo: 'file', src: u }
+  return null
+}
 
 export const audioUrl = (record) => hasBackend && record?.audio ? `${IMG_BASE}/audio/${record.audio}` : null
 export const AUDIO_EXT = { 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/ogg': 'ogg', 'audio/wav': 'wav', 'audio/x-wav': 'wav' }
@@ -73,6 +118,7 @@ function loadEdits() {
 export async function loadCatalogo() {
   if (hasBackend) {
     const ev = fetchEvento()
+    const si = fetchConfig(SITO_KEY)
     const rows = []
     for (let from = 0; ; from += 1000) {
       const { data, error } = await supabase.from('schede').select('*').order('id').range(from, from + 999)
@@ -83,6 +129,7 @@ export async function loadCatalogo() {
     mediaReady = rows.length > 0 && 'audio' in rows[0] && 'video' in rows[0]
     cache = rows.map(fromDb)
     evento = await ev
+    sito = await si
     return
   }
   const { default: catalogo } = await import('./catalogo.json')
@@ -97,19 +144,31 @@ function allRecords() {
   return cache
 }
 
-// Evento in evidenza: un unico file su R2 (config/evento.json), letto dal Worker e modificato dal pannello.
-// { attivo, titolo, dal, al (aaaa-mm-gg), testo, immagine (nome del file in large/) }
+// Impostazioni modificabili dal pannello: piccoli file JSON su R2 letti dal Worker
+//   config/evento.json  evento in evidenza { attivo, titolo, dal, al (aaaa-mm-gg), testo, immagine (nome in large/) }
+//   config/sito.json    testi del sito { footer }
 const EVENTO_KEY = 'config/evento.json'
+const SITO_KEY = 'config/sito.json'
 let evento = null
+let sito = null
 
-async function fetchEvento() {
+async function fetchConfig(key) {
   if (!WORKER_URL) return null
   try {
-    const res = await fetch(`${WORKER_URL}?key=${encodeURIComponent(EVENTO_KEY)}`, { cache: 'no-store' })
+    const res = await fetch(`${WORKER_URL}?key=${encodeURIComponent(key)}`, { cache: 'no-store' })
     return res.ok ? await res.json() : null
   } catch {
-    return null // senza evento il sito funziona lo stesso
+    return null // senza impostazioni il sito funziona lo stesso
   }
+}
+const fetchEvento = () => fetchConfig(EVENTO_KEY)
+
+export const getTestoFooter = () => sito?.footer || ''
+
+export async function saveTestoFooter(testo) {
+  const next = { ...sito, footer: testo, aggiornato: new Date().toISOString() }
+  await uploadFile(SITO_KEY, new Blob([JSON.stringify(next)], { type: 'application/json' }))
+  sito = next
 }
 
 export const getEvento = () => evento
@@ -287,8 +346,8 @@ export function nextId() {
 }
 
 const hasImage = (r) => Boolean(r.imgData || r.immagini?.length)
-// ha qualcosa da mostrare in miniatura: un'immagine oppure un video di YouTube
-const hasVisual = (r) => hasImage(r) || Boolean(youtubeId(r.video))
+// ha qualcosa da mostrare in miniatura: un'immagine oppure un video
+const hasVisual = (r) => hasImage(r) || Boolean(videoInfo(r.video))
 
 export function imageUrl(record, size = 'thumbs', index = 0) {
   if (!record) return null
@@ -309,17 +368,19 @@ function shortPlace(r) {
   return [r.citta, r.data].filter(Boolean).join(', ')
 }
 
-// Forma usata da Thumb e Lightbox; senza immagini, la miniatura di un video è quella di YouTube
+// Forma usata da Thumb e Lightbox. Senza immagini: per YouTube la sua miniatura,
+// per un file video un fotogramma del video stesso (lo disegna Thumb)
 export function toThumb(r) {
-  const src = imageUrl(r) || youtubeThumb(r.video)
+  const video = videoInfo(r.video)
+  const src = imageUrl(r) || video?.thumb || null
   return {
     id: r.id,
     bg: `bg-${(parseInt(r.id, 10) % 8) + 1}`,
-    label: src ? '' : r.audio ? 'Audio' : 'Immagine in digitalizzazione',
+    label: src || video ? '' : r.audio ? 'Audio' : 'Immagine in digitalizzazione',
     caption: [r.titolo, shortPlace(r)].filter(Boolean).join(' · '),
     src,
-    large: imageUrl(r, 'large') || youtubeThumb(r.video),
-    video: youtubeEmbed(r.video), // l'ingrandimento mostra il video al posto dell'immagine
+    large: imageUrl(r, 'large') || video?.thumb || null,
+    video, // l'ingrandimento mostra il video al posto dell'immagine
     formati: formati(r).filter(f => f !== 'Immagini'),
   }
 }
@@ -347,8 +408,11 @@ export function latestUploads(n = 5) {
 
 const year = (r) => (r.dataOrd || '').slice(0, 4)
 
+// Autore delle schede che non ne hanno uno
+export const SCONOSCIUTO = 'Sconosciuto'
+
 const campoValues = {
-  autore: (r) => [r.autore || 'Anonimo'],
+  autore: (r) => [r.autore || SCONOSCIUTO],
   luogo: (r) => [r.citta, r.luogo].filter(Boolean),
   data: (r) => year(r) ? [year(r)] : [],
   persone: (r) => r.persone,
@@ -455,17 +519,20 @@ const titoli = {
   formato: 'Formato',
 }
 
-const ORDINE_FORMATI = ['Immagini', 'PDF', 'Video', 'Audio']
+const FORMATI = ['Audio', 'Immagini', 'PDF', 'Video']
 
-export function buildIndex(campo) {
+// Ordine alfabetico italiano, senza badare a maiuscole, accenti e virgolette; "Sconosciuto" sempre in fondo
+const alfabetico = (a, b) => (a.name === SCONOSCIUTO) - (b.name === SCONOSCIUTO)
+  || a.name.localeCompare(b.name, 'it', { sensitivity: 'base', ignorePunctuation: true, numeric: true })
+
+// `filtro` (facoltativo) limita le schede contate, es. solo le fotografie
+export function buildIndex(campo, filtro = () => true) {
   const key = titoli[campo] ? campo : 'autore'
   // i formati compaiono sempre tutti, anche quelli ancora senza schede
-  const counts = new Map(key === 'formato' ? ORDINE_FORMATI.map(f => [f, 0]) : [])
-  for (const r of allRecords()) {
+  const counts = new Map(key === 'formato' ? FORMATI.map(f => [f, 0]) : [])
+  for (const r of allRecords().filter(filtro)) {
     for (const v of new Set(campoValues[key](r))) counts.set(v, (counts.get(v) || 0) + 1)
   }
-  const items = [...counts].map(([name, count]) => ({ name, count }))
-  if (key === 'data') items.sort((a, b) => a.name.localeCompare(b.name))
-  else if (key !== 'formato') items.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'it'))
+  const items = [...counts].map(([name, count]) => ({ name, count })).sort(alfabetico)
   return { campo: key, titolo: titoli[key], items }
 }

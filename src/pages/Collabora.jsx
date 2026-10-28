@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Segmented from '../components/Segmented'
 import SignaturePad from '../components/SignaturePad'
+import { usePageMeta } from '../lib/meta'
 
 function formatBytes(n) {
   if (n < 1024) return `${n} B`
@@ -10,6 +11,7 @@ function formatBytes(n) {
 }
 
 export default function Collabora() {
+  usePageMeta('Collabora', "Hai fotografie o documenti sui movimenti politici e le lotte studentesche a Cesena tra il 1968 e il 1977? Donali all'archivio.")
   const sigRef = useRef(null)
   const [files, setFiles] = useState([])
   const [docFiles, setDocFiles] = useState([])
