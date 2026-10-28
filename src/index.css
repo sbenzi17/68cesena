@@ -1762,6 +1762,32 @@ button.action {
 .admin-panel h2 { font-size: 1.25rem; margin-bottom: 1rem; }
 .form-ok { color: #2f6f4f; font-size: 0.9rem; margin: 0.5rem 0 1rem; }
 
+/* Anteprima del sito dentro il pannello */
+.anteprima-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.9rem;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+.anteprima-bar span { margin-right: auto; }
+.anteprima-bar select { padding: 0.55rem 0.7rem; border: 1px solid var(--border); background: var(--paper); font: inherit; }
+.anteprima-frame {
+  background: #d9d3c6;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+.anteprima-frame iframe {
+  width: 100%;
+  height: calc(100vh - 150px);
+  min-height: 500px;
+  border: 0;
+  background: #fff;
+  box-shadow: 0 0 20px rgba(0,0,0,0.15);
+}
+
 /* Pagina "Stato" del pannello */
 .stato-section { font-size: 1.35rem; margin: 2rem 0 0.9rem; }
 .stato-meter-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }

@@ -14,6 +14,7 @@ import AdminStorico from './pages/AdminStorico'
 import AdminUtenti from './pages/AdminUtenti'
 import AdminStato from './pages/AdminStato'
 import AdminEvento from './pages/AdminEvento'
+import AdminAnteprima from './pages/AdminAnteprima'
 import Collabora from './pages/Collabora'
 import Contatto from './pages/Contatto'
 import './App.css'
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/admin/utenti" element={<AdminUtenti />} />
           <Route path="/admin/stato" element={<AdminStato />} />
           <Route path="/admin/evento" element={<AdminEvento />} />
+          <Route path="/admin/anteprima" element={<AdminAnteprima />} />
         </Route>
       </Routes>
     </BrowserRouter>

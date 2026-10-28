@@ -23,6 +23,7 @@ export default function AdminHeader() {
         </div>
         <nav className="admin-nav">
           <NavLink to="/admin" end>Schede</NavLink>
+          <NavLink to="/admin/anteprima">Anteprima</NavLink>
           {hasBackend && <NavLink to="/admin/storico">Storico</NavLink>}
           {hasBackend && <NavLink to="/admin/evento">Evento</NavLink>}
           {hasBackend && <NavLink to="/admin/utenti">Utenti</NavLink>}

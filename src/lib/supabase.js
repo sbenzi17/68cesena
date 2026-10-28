@@ -10,7 +10,11 @@ export const WORKER_URL = (import.meta.env.VITE_WORKER_URL || '').replace(/\/$/,
 // Senza configurazione il sito funziona in modalità demo (catalogo.json + modifiche nel browser)
 export const hasBackend = Boolean(url && anonKey && IMG_BASE)
 
-export const supabase = hasBackend ? createClient(url, anonKey) : null
+// Dentro l'anteprima del pannello (il sito in un iframe) si guarda il sito come un visitatore: senza login
+const inAnteprima = window.self !== window.top
+const options = inAnteprima ? { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } } : undefined
+
+export const supabase = hasBackend ? createClient(url, anonKey, options) : null
 
 export async function isAdmin() {
   if (!hasBackend) return true
