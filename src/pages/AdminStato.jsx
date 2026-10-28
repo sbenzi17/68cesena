@@ -59,6 +59,17 @@ export default function AdminStato() {
   const [img, setImg] = useState('wait')
   const [ping, setPing] = useState(null)
   const [copiato, setCopiato] = useState(false)
+  const [pingManuale, setPingManuale] = useState(null)
+
+  // Ping manuale: una lettura dal database, come quella del ping automatico, che conta come attività
+  const faiPing = async () => {
+    setPingManuale({ stato: 'wait' })
+    const inizio = performance.now()
+    const { error } = await supabase.from('schede').select('id').limit(1)
+    setPingManuale(error
+      ? { stato: 'danger', testo: `Ping non riuscito: ${error.message}` }
+      : { stato: 'ok', testo: `Ping riuscito alle ${new Date().toLocaleTimeString('it-IT')} (risposta in ${Math.round(performance.now() - inizio)} ms).` })
+  }
 
   useEffect(() => {
     loadStato().then(setDati).catch(e => setErrore(e.message))
@@ -146,9 +157,14 @@ export default function AdminStato() {
           <Check stato={img}>Immagini su R2: {img === 'ok' ? 'si caricano' : img === 'wait' ? 'controllo…' : 'NON si caricano'}</Check>
           <Check stato={errore ? 'danger' : dati ? 'ok' : 'wait'}>Worker dei caricamenti: {errore ? 'NON risponde' : dati ? 'risponde' : 'controllo…'}</Check>
           <Check stato={pingStato}>{pingTesto}</Check>
+          {pingManuale && <Check stato={pingManuale.stato}>{pingManuale.testo || 'Ping in corso…'}</Check>}
         </ul>
+        <p style={{ margin: '0.75rem 0' }}>
+          <button type="button" className="btn" onClick={faiPing} disabled={pingManuale?.stato === 'wait'}>Fai un ping adesso</button>
+        </p>
         <p className="form-helper">
-          Il piano gratuito di Supabase mette in pausa il database dopo 7 giorni senza richieste: il ping automatico lo evita.
+          Il piano gratuito di Supabase mette in pausa il database dopo 7 giorni senza richieste: il ping automatico lo evita,
+          e il pulsante fa la stessa cosa a mano. Conta come attività anche ogni visita al sito.
           Se andasse in pausa, il sito mostra «Archivio momentaneamente non disponibile»: si riattiva da supabase.com con <strong>Restore</strong>, senza perdere dati.
         </p>
       </section>
