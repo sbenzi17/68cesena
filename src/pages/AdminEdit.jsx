@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getPhotoDetail, imageUrl, pdfUrl, pdfFromImages, saveRecord, deleteRecord, nextId, distinctValues } from '../data/photos'
+import { getPhotoDetail, imageUrl, pdfUrl, pdfFromImages, pdfFirstPage, saveRecord, deleteRecord, nextId, distinctValues } from '../data/photos'
 import { precisioni, splitOrd, joinOrd, IT_PATTERN } from '../data/dates'
 import { hasBackend } from '../lib/supabase'
 import Lightbox from '../components/Lightbox'
@@ -135,9 +135,23 @@ export default function AdminEdit() {
     setSelected(pages.length)
   }
 
-  const onPdfFile = (file) => file && setPdf({ blob: file, label: file.name })
+  // Con un PDF la scheda tiene come immagine (e miniatura) solo la sua prima pagina
+  const onPdfFile = async (file) => {
+    if (!file) return
+    setBusy(true)
+    setError('')
+    try {
+      const cover = await pdfFirstPage(file)
+      setPdf({ blob: file, label: file.name })
+      setPages([fromFile(cover)])
+      setSelected(0)
+    } catch (err) {
+      setError(`Impossibile leggere il PDF: ${err.message}`)
+    }
+    setBusy(false)
+  }
 
-  // PDF creato nel browser da più immagini; se la scheda non ha immagini, la prima diventa la copertina
+  // PDF creato nel browser da più immagini: la prima diventa la copertina
   const onPdfImages = async (files) => {
     if (!files?.length) return
     const sorted = Array.from(files).sort((a, b) => a.name.localeCompare(b.name, 'it', { numeric: true }))
@@ -145,7 +159,8 @@ export default function AdminEdit() {
     setError('')
     try {
       setPdf({ blob: await pdfFromImages(sorted), label: `creato da ${sorted.length} immagini` })
-      if (!pages.length) setPages([fromFile(sorted[0])])
+      setPages([fromFile(sorted[0])])
+      setSelected(0)
     } catch (err) {
       setError(`Creazione del PDF non riuscita: ${err.message}`)
     }
@@ -271,14 +286,14 @@ export default function AdminEdit() {
               )}
               <div className="form-group">
                 <label htmlFor="pdf-file">{original.pdf ? 'Sostituisci con un PDF' : 'Carica un PDF'}</label>
-                <input type="file" id="pdf-file" accept="application/pdf" onChange={(e) => { onPdfFile(e.target.files?.[0]); e.target.value = '' }} />
+                <input type="file" id="pdf-file" accept="application/pdf" onChange={(e) => { onPdfFile(e.target.files?.[0]); e.target.value = '' }} disabled={busy} />
               </div>
               <div className="form-group">
                 <label htmlFor="pdf-images">Oppure crea il PDF da più immagini</label>
                 <input type="file" id="pdf-images" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => { onPdfImages(e.target.files); e.target.value = '' }} disabled={busy} />
                 <p className="form-helper">
-                  Le pagine vanno nell'ordine del nome del file. Come per i bollettini, nella scheda basta la prima pagina
-                  come immagine: se la scheda non ne ha, uso la prima.
+                  Le pagine vanno nell'ordine del nome del file. In entrambi i casi la prima pagina del PDF
+                  diventa l'immagine (e la miniatura) della scheda, al posto di quelle attuali.
                 </p>
               </div>
             </fieldset>

@@ -4,8 +4,9 @@
 // Il catalogo viene caricato tutto all'avvio (loadCatalogo) e poi filtrato in memoria.
 import { supabase, hasBackend, IMG_BASE, uploadFile } from '../lib/supabase'
 
-// pdf-lib si scarica solo quando serve rigenerare un PDF
+// Librerie scaricate solo quando servono: pdf-lib crea i PDF, pdf.js ne disegna la prima pagina
 const PDF_LIB = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm'
+const PDF_JS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build'
 
 const BASE = import.meta.env.BASE_URL
 const EDITS_KEY = 'archivio-modifiche-demo'
@@ -99,6 +100,24 @@ export async function pdfFromImages(files) {
     doc.addPage([width, height]).drawImage(img, { x: 0, y: 0, width, height })
   }
   return new Blob([await doc.save()], { type: 'application/pdf' })
+}
+
+// Prima pagina di un PDF come immagine JPEG (larga circa 1600 px): diventa la copertina della scheda
+export async function pdfFirstPage(pdf) {
+  const pdfjs = await import(/* @vite-ignore */ `${PDF_JS}/pdf.min.mjs`)
+  // il worker di pdf.js sta su un altro dominio: lo si avvia da un piccolo modulo locale che lo importa
+  pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(
+    new Blob([`import "${PDF_JS}/pdf.worker.min.mjs";`], { type: 'text/javascript' }))
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(await pdf.arrayBuffer()) }).promise
+  const page = await doc.getPage(1)
+  const base = page.getViewport({ scale: 1 })
+  const viewport = page.getViewport({ scale: 1600 / Math.max(base.width, base.height) })
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(viewport.width)
+  canvas.height = Math.round(viewport.height)
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
+  await doc.destroy()
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.88))
 }
 
 // Niente upsert: il trigger dello storico registrerebbe anche una creazione fittizia a ogni modifica
@@ -224,14 +243,9 @@ export function recentPhotos() {
   return allRecords().filter(r => hasImage(r) && r.serie !== 'Volantini').sort(byAdded).slice(0, 12).map(toThumb)
 }
 
-// Fotografie scelte a caso (cambiano a ogni caricamento della pagina), per il banner della home
-export function randomPhotos(n = 5) {
-  const pool = allRecords().filter(r => hasImage(r) && r.serie === 'Fotografie')
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]]
-  }
-  return pool.slice(0, n)
+// Le ultime schede caricate (volantini esclusi), per il banner della home
+export function latestUploads(n = 5) {
+  return allRecords().filter(r => hasImage(r) && r.serie !== 'Volantini').sort(byAdded).slice(0, n)
 }
 
 const year = (r) => (r.dataOrd || '').slice(0, 4)
