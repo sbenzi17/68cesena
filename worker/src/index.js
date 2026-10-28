@@ -1,12 +1,13 @@
 // Cloudflare Worker al servizio del pannello admin:
-// - /?key=...   legge, carica ed elimina file nel bucket R2
+// - /?key=...   legge, carica ed elimina file nel bucket R2 (immagini, PDF e config/evento.json)
 // - /utenti     elenca, crea, modifica ed elimina gli amministratori (usa la chiave service_role di Supabase)
 // - /storico/ID elimina una riga dello storico delle modifiche
 // - /stato      spazio usato su R2 e dimensione del database, per la pagina "Stato" del pannello
 // Le scritture sono permesse solo a utenti con login Supabase presenti nella tabella `admin`.
 // Le immagini per il pubblico si leggono direttamente dall'URL pubblico del bucket, non da qui.
 
-const KEY_RE = /^(thumbs|large|pdf)\/[A-Za-z0-9._-]+\.(jpg|pdf)$/
+const KEY_RE = /^((thumbs|large|pdf)\/[A-Za-z0-9._-]+\.(jpg|pdf)|config\/evento\.json)$/
+const contentTypes = { jpg: 'image/jpeg', pdf: 'application/pdf', json: 'application/json' }
 const MAX_BYTES = 25 * 1024 * 1024
 
 // ALLOWED_ORIGIN può elencare più indirizzi separati da virgola; in più è accettato localhost su qualsiasi porta
@@ -64,11 +65,17 @@ async function files(request, env, url) {
   const key = url.searchParams.get('key') || ''
   if (!KEY_RE.test(key)) return reply(env, 400, { error: 'chiave non valida' })
 
-  // Lettura libera (i file sono comunque pubblici): serve al pannello per rigenerare i PDF
+  // Lettura libera (i file sono comunque pubblici): serve al sito per leggere l'evento in evidenza
   if (request.method === 'GET') {
     const obj = await env.BUCKET.get(key)
     if (!obj) return reply(env, 404, { error: 'file non trovato' })
-    return new Response(obj.body, { headers: { 'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream', ...cors(env) } })
+    return new Response(obj.body, {
+      headers: {
+        'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
+        ...(key.endsWith('.json') && { 'Cache-Control': 'no-store' }),
+        ...cors(env),
+      },
+    })
   }
 
   if (!(await adminId(request, env))) return reply(env, 401, { error: 'non autorizzato' })
@@ -76,8 +83,9 @@ async function files(request, env, url) {
   if (request.method === 'PUT') {
     const size = Number(request.headers.get('Content-Length') || 0)
     if (size > MAX_BYTES) return reply(env, 413, { error: 'file troppo grande' })
-    const contentType = key.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'
-    await env.BUCKET.put(key, request.body, { httpMetadata: { contentType, cacheControl: 'public, max-age=86400' } })
+    const contentType = contentTypes[key.split('.').pop()]
+    const cacheControl = key.endsWith('.json') ? 'no-store' : 'public, max-age=86400'
+    await env.BUCKET.put(key, request.body, { httpMetadata: { contentType, cacheControl } })
     return reply(env, 200, { ok: true, key })
   }
 

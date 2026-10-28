@@ -4,7 +4,25 @@ import Banner from '../components/Banner'
 import Thumb from '../components/Thumb'
 import Lightbox from '../components/Lightbox'
 import { useLightbox } from '../components/Lightbox'
-import { recentPhotos, latestUploads, imageUrl, getRecords } from '../data/photos'
+import { recentPhotos, latestUploads, imageUrl, getRecords, getEvento, eventoVisibile, eventoImageUrl, eventoPeriodo } from '../data/photos'
+
+// Sezione informativa dell'evento in evidenza (sotto il banner, solo se l'admin l'ha attivata)
+function Evento({ evento }) {
+  const img = eventoImageUrl(evento)
+  return (
+    <section id="evento" className="evento">
+      <div className={`container evento-inner${img ? '' : ' evento-noimg'}`}>
+        {img && <img src={img} alt="" className="evento-img" />}
+        <div>
+          <span className="evento-eyebrow">In evidenza</span>
+          <h2>{evento.titolo}</h2>
+          {eventoPeriodo(evento) && <p className="evento-periodo">{eventoPeriodo(evento)}</p>}
+          {evento.testo && <div className="evento-testo">{evento.testo}</div>}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 export default function Home() {
   const navigate = useNavigate()
@@ -12,12 +30,24 @@ export default function Home() {
   const total = useMemo(() => getRecords().length, [])
   const lb = useLightbox(photos)
 
-  const slides = useMemo(() => latestUploads(5).map(r => ({
-    image: imageUrl(r, 'large'),
-    title: r.titolo,
-    description: [r.citta, r.data].filter(Boolean).join(' — '),
-    href: `/foto/${r.id}`,
-  })), [])
+  const evento = eventoVisibile() ? getEvento() : null
+
+  // se c'è un evento attivo con immagine, è sempre la prima slide; cliccandola si scende alla sua sezione
+  const slides = useMemo(() => [
+    ...(evento && eventoImageUrl(evento) ? [{
+      image: eventoImageUrl(evento),
+      eyebrow: 'In evidenza',
+      title: evento.titolo,
+      description: eventoPeriodo(evento),
+      onClick: () => document.getElementById('evento')?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+    }] : []),
+    ...latestUploads(5).map(r => ({
+      image: imageUrl(r, 'large'),
+      title: r.titolo,
+      description: [r.citta, r.data].filter(Boolean).join(' — '),
+      href: `/foto/${r.id}`,
+    })),
+  ], [evento])
 
   const onSubmit = (e) => {
     e.preventDefault()
@@ -28,6 +58,7 @@ export default function Home() {
   return (
     <>
       <Banner slides={slides} />
+      {evento && <Evento evento={evento} />}
 
       <section className="hero">
         <div className="container">

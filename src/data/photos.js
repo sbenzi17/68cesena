@@ -2,7 +2,7 @@
 // Con Supabase configurato (.env.production) legge e scrive sul database e le immagini stanno su R2;
 // altrimenti usa catalogo.json e salva le modifiche solo nel browser (modalità demo).
 // Il catalogo viene caricato tutto all'avvio (loadCatalogo) e poi filtrato in memoria.
-import { supabase, hasBackend, IMG_BASE, uploadFile } from '../lib/supabase'
+import { supabase, hasBackend, IMG_BASE, WORKER_URL, uploadFile } from '../lib/supabase'
 
 // Librerie scaricate solo quando servono: pdf-lib crea i PDF, pdf.js ne disegna la prima pagina
 const PDF_LIB = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm'
@@ -39,6 +39,7 @@ function loadEdits() {
 
 export async function loadCatalogo() {
   if (hasBackend) {
+    const ev = fetchEvento()
     const rows = []
     for (let from = 0; ; from += 1000) {
       const { data, error } = await supabase.from('schede').select('*').order('id').range(from, from + 999)
@@ -47,6 +48,7 @@ export async function loadCatalogo() {
       if (data.length < 1000) break
     }
     cache = rows.map(fromDb)
+    evento = await ev
     return
   }
   const { default: catalogo } = await import('./catalogo.json')
@@ -59,6 +61,54 @@ export async function loadCatalogo() {
 
 function allRecords() {
   return cache
+}
+
+// Evento in evidenza: un unico file su R2 (config/evento.json), letto dal Worker e modificato dal pannello.
+// { attivo, titolo, dal, al (aaaa-mm-gg), testo, immagine (nome del file in large/) }
+const EVENTO_KEY = 'config/evento.json'
+let evento = null
+
+async function fetchEvento() {
+  if (!WORKER_URL) return null
+  try {
+    const res = await fetch(`${WORKER_URL}?key=${encodeURIComponent(EVENTO_KEY)}`, { cache: 'no-store' })
+    return res.ok ? await res.json() : null
+  } catch {
+    return null // senza evento il sito funziona lo stesso
+  }
+}
+
+export const getEvento = () => evento
+
+// Visibile se l'admin l'ha attivato e la data di fine non è passata
+export function eventoVisibile(e = evento) {
+  if (!e?.attivo || !e.titolo) return false
+  const oggi = new Date().toLocaleDateString('sv-SE') // aaaa-mm-gg nel fuso del visitatore
+  return !e.al || oggi <= e.al
+}
+
+export const eventoImageUrl = (e = evento) => e?.immagine ? `${IMG_BASE}/large/${e.immagine}.jpg` : null
+
+// "dal 12 novembre 2026 al 15 novembre 2026"
+export function eventoPeriodo(e = evento) {
+  const day = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
+  if (e?.dal && e?.al) return e.dal === e.al ? day(e.dal) : `dal ${day(e.dal)} al ${day(e.al)}`
+  if (e?.dal) return `dal ${day(e.dal)}`
+  if (e?.al) return `fino al ${day(e.al)}`
+  return ''
+}
+
+// Salva l'evento; `file` (facoltativo) è la nuova immagine, `togliImmagine` la rimuove
+export async function saveEvento(dati, file, togliImmagine) {
+  const next = { ...dati, immagine: togliImmagine ? null : evento?.immagine || null }
+  if (file) {
+    next.immagine = `evento-${Date.now().toString(36)}`
+    await uploadFile(`large/${next.immagine}.jpg`, await resizeImage(file, 1600, 0.85))
+  }
+  next.aggiornato = new Date().toISOString()
+  await uploadFile(EVENTO_KEY, new Blob([JSON.stringify(next)], { type: 'application/json' }))
+  evento = next
+  return next
 }
 
 // Riduce l'immagine nel browser prima del caricamento

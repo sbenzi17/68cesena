@@ -13,6 +13,7 @@ import AdminEdit from './pages/AdminEdit'
 import AdminStorico from './pages/AdminStorico'
 import AdminUtenti from './pages/AdminUtenti'
 import AdminStato from './pages/AdminStato'
+import AdminEvento from './pages/AdminEvento'
 import Collabora from './pages/Collabora'
 import Contatto from './pages/Contatto'
 import './App.css'
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/admin/storico" element={<AdminStorico />} />
           <Route path="/admin/utenti" element={<AdminUtenti />} />
           <Route path="/admin/stato" element={<AdminStato />} />
+          <Route path="/admin/evento" element={<AdminEvento />} />
         </Route>
       </Routes>
     </BrowserRouter>

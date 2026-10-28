@@ -29,20 +29,25 @@ export default function Banner({ slides }) {
 
   return (
     <section className="banner" onMouseEnter={stop} onMouseLeave={start}>
-      {slides.map((s, i) => (
-        <Link
-          key={s.href}
-          to={s.href}
-          className={`banner-slide has-img${i === current ? ' active' : ''}`}
-          style={{ backgroundImage: `url(${s.image})` }}
-          tabIndex={i === current ? 0 : -1}
-        >
+      {slides.map((s, i) => {
+        // una slide porta a una scheda (href) oppure esegue un'azione (onClick, es. scorrere all'evento)
+        const props = {
+          key: s.href || s.title,
+          className: `banner-slide has-img${i === current ? ' active' : ''}`,
+          style: { backgroundImage: `url(${s.image})` },
+          tabIndex: i === current ? 0 : -1,
+        }
+        const content = (
           <div className="banner-content">
+            {s.eyebrow && <span className="banner-eyebrow">{s.eyebrow}</span>}
             <h2>{s.title}</h2>
             <p>{s.description}</p>
           </div>
-        </Link>
-      ))}
+        )
+        return s.href
+          ? <Link to={s.href} {...props}>{content}</Link>
+          : <a href="#evento" {...props} onClick={(e) => { e.preventDefault(); s.onClick?.() }}>{content}</a>
+      })}
 
       <button className="banner-arrow banner-prev" aria-label="Foto precedente" onClick={() => goTo(current - 1)}>&#8249;</button>
       <button className="banner-arrow banner-next" aria-label="Foto successiva" onClick={() => goTo(current + 1)}>&#8250;</button>
