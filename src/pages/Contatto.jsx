@@ -4,7 +4,7 @@ import { usePageMeta } from '../lib/meta'
 
 // Invio tramite formsubmit.co, servizio gratuito che inoltra il modulo per email.
 // Al primo messaggio arriva a EMAIL una richiesta di attivazione da confermare una sola volta.
-const EMAIL = 'benzi580@gmail.com'
+const EMAIL = 'info@68cesena.it'
 const FORM_ENDPOINT = `https://formsubmit.co/ajax/${EMAIL}`
 
 export default function Contatto() {
