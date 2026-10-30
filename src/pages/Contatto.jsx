@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../lib/meta'
 
-// Invio tramite formsubmit.co, servizio gratuito che inoltra il modulo per email.
-// Al primo messaggio arriva a EMAIL una richiesta di attivazione da confermare una sola volta.
+// Invio tramite Web3Forms (gratuito, affidabile). Access key creata su web3forms.com.
 const EMAIL = 'info@68cesena.it'
-const FORM_ENDPOINT = `https://formsubmit.co/ajax/${EMAIL}`
+const FORM_ENDPOINT = 'https://api.web3forms.com/submit'
+const ACCESS_KEY = 'fd2e6778-b7df-40b3-ac32-96570c1bbd12'
 
 export default function Contatto() {
   usePageMeta('Contattaci', "Scrivi all'archivio 1968/1977 a Cesena: domande, correzioni, ricordi da segnalare.")
@@ -18,12 +18,15 @@ export default function Contatto() {
     setError(null)
     setSending(true)
     try {
+      const data = new FormData(e.currentTarget)
+      data.append('access_key', ACCESS_KEY)
       const res = await fetch(FORM_ENDPOINT, {
         method: 'POST',
-        body: new FormData(e.currentTarget),
+        body: data,
         headers: { Accept: 'application/json' },
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      if (!res.ok || !json.success) throw new Error(json.message || `HTTP ${res.status}`)
       setSubmitted(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
@@ -56,11 +59,10 @@ export default function Contatto() {
 
       <main className="container">
         <form className="collabora-form" onSubmit={onSubmit}>
-          <input type="hidden" name="_subject" value="Nuovo messaggio da 1968/1977 a Cesena" />
-          <input type="hidden" name="_captcha" value="false" />
-          <input type="hidden" name="_template" value="table" />
-          {/* Honeypot anti-spam */}
-          <input type="text" name="_honey" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+          <input type="hidden" name="subject" value="Nuovo messaggio da 1968/1977 a Cesena" />
+          <input type="hidden" name="from_name" value="Modulo contatti 68cesena.it" />
+          {/* Honeypot anti-spam Web3Forms */}
+          <input type="checkbox" name="botcheck" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
 
           <div className="form-row">
             <div className="form-group">
