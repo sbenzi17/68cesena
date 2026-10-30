@@ -229,7 +229,7 @@ export default function Collabora() {
               </p>
               <strong>Trattamento dei dati personali (Reg. UE 2016/679 — GDPR)</strong>
               <p>
-                I dati anagrafici e il documento d'identità sono trattati esclusivamente per verificare la titolarità della donazione e per gli adempimenti di legge. Conservazione: 10 anni. Titolare del trattamento: Archivio Fotografico 1968/1977 a Cesena. Hai diritto di accedere, rettificare e richiedere la cancellazione dei tuoi dati scrivendo a benzi580@gmail.com.
+                I dati anagrafici e il documento d'identità sono trattati esclusivamente per verificare la titolarità della donazione e per gli adempimenti di legge. Conservazione: 10 anni. Titolare del trattamento: Archivio Fotografico 1968/1977 a Cesena. Hai diritto di accedere, rettificare e richiedere la cancellazione dei tuoi dati scrivendo a info@68cesena.it.
               </p>
             </div>
 

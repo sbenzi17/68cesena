@@ -8,7 +8,7 @@ bucket_name = "archivio-foto"
 
 [vars]
 # Il sito pubblico (localhost su qualsiasi porta è sempre accettato, vedi src/index.js)
-ALLOWED_ORIGIN = "https://sbenzi17.github.io"
+ALLOWED_ORIGIN = "https://68cesena.it,https://www.68cesena.it,https://sbenzi17.github.io"
 # Da compilare dopo aver creato il progetto Supabase (valori pubblici, non segreti)
 SUPABASE_URL = "https://zoxwrlmczdaelsovkeyl.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpveHdybG1jemRhZWxzb3ZrZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMzMzMjMsImV4cCI6MjEwODYwOTMyM30.Ic8Tq99T2oAhxucNC1YmJIvvKHW4jaVMGsZxtCFC-HQ"
