@@ -5,7 +5,7 @@ import Thumb from '../components/Thumb'
 import Lightbox from '../components/Lightbox'
 import { useLightbox } from '../components/Lightbox'
 import { usePageMeta } from '../lib/meta'
-import { recentPhotos, latestUploads, imageUrl, videoInfo, getRecords, getEvento, eventoVisibile, eventoImageUrl, eventoPeriodo } from '../data/photos'
+import { recentPhotos, randomUploads, imageUrl, videoInfo, getRecords, getEvento, eventoVisibile, eventoImageUrl, eventoPeriodo, getTestoHome } from '../data/photos'
 
 // Sezione informativa dell'evento in evidenza (sotto il banner, solo se l'admin l'ha attivata)
 function Evento({ evento }) {
@@ -33,8 +33,10 @@ export default function Home() {
   const lb = useLightbox(photos)
 
   const evento = eventoVisibile() ? getEvento() : null
+  const testoHome = getTestoHome()
 
-  // se c'è un evento attivo con immagine, è sempre la prima slide; cliccandola si scende alla sua sezione
+  // se c'è un evento attivo con immagine, è sempre la prima slide; cliccandola si scende alla sua sezione.
+  // Le altre slide sono schede a caso: cambiano ad ogni caricamento della pagina.
   const slides = useMemo(() => [
     ...(evento && eventoImageUrl(evento) ? [{
       image: eventoImageUrl(evento),
@@ -44,7 +46,7 @@ export default function Home() {
       onClick: () => document.getElementById('evento')?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
     }] : []),
     // il banner ha bisogno di un'immagine: i file video senza immagine restano fuori
-    ...latestUploads(8).map(r => ({
+    ...randomUploads(12).map(r => ({
       image: imageUrl(r, 'large') || videoInfo(r.video)?.thumb,
       title: r.titolo,
       description: [r.citta, r.data].filter(Boolean).join(' — '),
@@ -61,6 +63,13 @@ export default function Home() {
   return (
     <>
       <Banner slides={slides} />
+      {testoHome && (
+        <section className="evento">
+          <div className="container evento-inner evento-noimg">
+            <div><div className="evento-testo">{testoHome}</div></div>
+          </div>
+        </section>
+      )}
       {evento && <Evento evento={evento} />}
 
       <section className="hero">

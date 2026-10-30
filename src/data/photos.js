@@ -146,7 +146,7 @@ function allRecords() {
 
 // Impostazioni modificabili dal pannello: piccoli file JSON su R2 letti dal Worker
 //   config/evento.json  evento in evidenza { attivo, titolo, dal, al (aaaa-mm-gg), testo, immagine (nome in large/) }
-//   config/sito.json    testi del sito { footer }
+//   config/sito.json    testi del sito { footer, home }
 const EVENTO_KEY = 'config/evento.json'
 const SITO_KEY = 'config/sito.json'
 let evento = null
@@ -164,9 +164,10 @@ async function fetchConfig(key) {
 const fetchEvento = () => fetchConfig(EVENTO_KEY)
 
 export const getTestoFooter = () => sito?.footer || ''
+export const getTestoHome = () => sito?.home || ''
 
-export async function saveTestoFooter(testo) {
-  const next = { ...sito, footer: testo, aggiornato: new Date().toISOString() }
+export async function saveTestiSito({ footer, home }) {
+  const next = { ...sito, footer, home, aggiornato: new Date().toISOString() }
   await uploadFile(SITO_KEY, new Blob([JSON.stringify(next)], { type: 'application/json' }))
   sito = next
 }
@@ -404,6 +405,16 @@ export function recentPhotos() {
 // Le ultime schede caricate (volantini esclusi), per il banner della home
 export function latestUploads(n = 5) {
   return allRecords().filter(r => hasVisual(r) && r.serie !== 'Volantini').sort(byAdded).slice(0, n)
+}
+
+// Schede a caso (volantini esclusi), per il banner della home: cambia ad ogni caricamento pagina
+export function randomUploads(n = 5) {
+  const pool = allRecords().filter(r => hasVisual(r) && r.serie !== 'Volantini')
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[pool[i], pool[j]] = [pool[j], pool[i]]
+  }
+  return pool.slice(0, n)
 }
 
 const year = (r) => (r.dataOrd || '').slice(0, 4)
