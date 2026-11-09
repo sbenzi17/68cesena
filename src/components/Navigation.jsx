@@ -3,13 +3,13 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom'
 
 const links = [
   { to: '/', campo: null, label: 'Home' },
-  { to: '/indice?campo=autore', campo: 'autore', label: 'Autore' },
-  { to: '/indice?campo=luogo', campo: 'luogo', label: 'Città / Luogo' },
-  { to: '/indice?campo=data', campo: 'data', label: 'Data' },
-  { to: '/indice?campo=persone', campo: 'persone', label: 'Persone' },
-  { to: '/indice?campo=formazione', campo: 'formazione', label: 'Formazione politica' },
-  { to: '/indice?campo=parole', campo: 'parole', label: 'Parole chiave' },
-  { to: '/indice?campo=formato', campo: 'formato', label: 'Formato' },
+  { to: '/indice/?campo=autore', campo: 'autore', label: 'Autore' },
+  { to: '/indice/?campo=luogo', campo: 'luogo', label: 'Città / Luogo' },
+  { to: '/indice/?campo=data', campo: 'data', label: 'Data' },
+  { to: '/indice/?campo=persone', campo: 'persone', label: 'Persone' },
+  { to: '/indice/?campo=formazione', campo: 'formazione', label: 'Formazione politica' },
+  { to: '/indice/?campo=parole', campo: 'parole', label: 'Parole chiave' },
+  { to: '/indice/?campo=formato', campo: 'formato', label: 'Formato' },
 ]
 
 export default function Navigation() {
@@ -20,7 +20,7 @@ export default function Navigation() {
 
   const isActive = (link) => {
     if (link.campo === null) return location.pathname === '/'
-    return location.pathname === '/indice' && currentCampo === link.campo
+    return location.pathname.replace(/\/$/, '') === '/indice' && currentCampo === link.campo
   }
 
   return (

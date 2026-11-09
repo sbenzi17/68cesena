@@ -18,7 +18,7 @@ function Field({ label, children }) {
 function Tags({ campo, values }) {
   if (!values.length) return null
   return values.map((v) => (
-    <Link key={v} to={`/risultati?campo=${campo}&q=${encodeURIComponent(v)}`} className="tag">{v}</Link>
+    <Link key={v} to={`/risultati/?campo=${campo}&q=${encodeURIComponent(v)}`} className="tag">{v}</Link>
   ))
 }
 
@@ -38,7 +38,7 @@ export default function Dettaglio() {
   if (!photo) {
     return (
       <main className="container">
-        <p style={{ marginTop: '2rem' }}>Scheda {id} non trovata. <Link to="/risultati">Torna all'archivio</Link></p>
+        <p style={{ marginTop: '2rem' }}>Scheda {id} non trovata. <Link to="/risultati/">Torna all'archivio</Link></p>
       </main>
     )
   }
@@ -51,7 +51,7 @@ export default function Dettaglio() {
   return (
     <main className="container">
       <p style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--muted)' }}>
-        <Link to="/risultati">&larr; Torna ai risultati</Link>
+        <Link to="/risultati/">&larr; Torna ai risultati</Link>
       </p>
 
       <article className="detail">
@@ -99,11 +99,11 @@ export default function Dettaglio() {
           <dl>
             <Field label="Identificativo">{photo.id}</Field>
             <Field label="Autore">
-              {photo.autore && <Link to={`/risultati?campo=autore&q=${encodeURIComponent(photo.autore)}`}>{photo.autore}</Link>}
+              {photo.autore && <Link to={`/risultati/?campo=autore&q=${encodeURIComponent(photo.autore)}`}>{photo.autore}</Link>}
             </Field>
             <Field label="Data">{photo.data}</Field>
             <Field label="Città">
-              {photo.citta && <Link to={`/risultati?campo=luogo&q=${encodeURIComponent(photo.citta)}`}>{photo.citta}</Link>}
+              {photo.citta && <Link to={`/risultati/?campo=luogo&q=${encodeURIComponent(photo.citta)}`}>{photo.citta}</Link>}
             </Field>
             <Field label="Luogo">{photo.luogo}</Field>
             <Field label="Evento">{photo.evento}</Field>

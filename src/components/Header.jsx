@@ -16,13 +16,13 @@ function HeaderSearch() {
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
-  const current = location.pathname === '/risultati' && !params.get('campo') ? params.get('q') || '' : ''
+  const current = location.pathname.replace(/\/$/, '') === '/risultati' && !params.get('campo') ? params.get('q') || '' : ''
   const [q, setQ] = useState(current)
   useEffect(() => setQ(current), [current])
 
   const onSubmit = (e) => {
     e.preventDefault()
-    navigate(`/risultati?q=${encodeURIComponent(q.trim())}`)
+    navigate(`/risultati/?q=${encodeURIComponent(q.trim())}`)
   }
 
   return (

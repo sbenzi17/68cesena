@@ -8,7 +8,7 @@ export default function Thumb({ photo, onClick }) {
   return (
     <div className="thumb">
       <Link
-        to={`/foto/${photo.id}`}
+        to={`/foto/${photo.id}/`}
         className="thumb-img-link"
         onClick={(e) => {
           if (onClick && (photo.src || photo.video)) {
@@ -31,7 +31,7 @@ export default function Thumb({ photo, onClick }) {
           )}
         </div>
       </Link>
-      <Link to={`/foto/${photo.id}`} className="thumb-caption">
+      <Link to={`/foto/${photo.id}/`} className="thumb-caption">
         {photo.caption} <span className="thumb-more">…dettagli</span>
       </Link>
     </div>

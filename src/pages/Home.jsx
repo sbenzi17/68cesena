@@ -50,14 +50,14 @@ export default function Home() {
       image: imageUrl(r, 'large') || videoInfo(r.video)?.thumb,
       title: r.titolo,
       description: [r.citta, r.data].filter(Boolean).join(' — '),
-      href: `/foto/${r.id}`,
+      href: `/foto/${r.id}/`,
     })).filter(s => s.image).slice(0, 5),
   ], [evento])
 
   const onSubmit = (e) => {
     e.preventDefault()
     const q = new FormData(e.currentTarget).get('q') || ''
-    navigate(`/risultati?q=${encodeURIComponent(q)}`)
+    navigate(`/risultati/?q=${encodeURIComponent(q)}`)
   }
 
   return (
