@@ -50,7 +50,7 @@ export default function Home() {
       image: imageUrl(r, 'large') || videoInfo(r.video)?.thumb,
       title: r.titolo,
       description: [r.citta, r.data].filter(Boolean).join(' — '),
-      href: `/foto/${r.id}`,
+      href: `/foto/${r.id}/`,
     })).filter(s => s.image).slice(0, 5),
   ], [evento])
 
