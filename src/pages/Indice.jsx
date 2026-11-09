@@ -7,7 +7,7 @@ function Lista({ data }) {
     <ul className="index-list">
       {data.items.map((item) => (
         <li key={item.name}>
-          <Link to={`/risultati?campo=${data.campo}&q=${encodeURIComponent(item.name)}`}>
+          <Link to={`/risultati/?campo=${data.campo}&q=${encodeURIComponent(item.name)}`}>
             <span className="index-name">{item.name}</span>
             <span className="index-count">{item.count}</span>
           </Link>

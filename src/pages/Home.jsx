@@ -57,7 +57,7 @@ export default function Home() {
   const onSubmit = (e) => {
     e.preventDefault()
     const q = new FormData(e.currentTarget).get('q') || ''
-    navigate(`/risultati?q=${encodeURIComponent(q)}`)
+    navigate(`/risultati/?q=${encodeURIComponent(q)}`)
   }
 
   return (
