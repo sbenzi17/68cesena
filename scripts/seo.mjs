@@ -60,14 +60,21 @@ function scrivi(path, { title, description, image, data, h1, extra = '' }) {
 const isoDate = (d) => /^\d{4}\.\d{2}\.\d{2}$/.test(d || '') ? d.replace(/\./g, '-') : /^\d{4}$/.test(d || '') ? d : undefined
 const youtubeThumb = (url) => (url || '').match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/)?.[1]
 
+// Link veri nell'HTML statico: Google trova e visita le schede senza aspettare che giri l'app
+const link = (path, testo) => `<a href="/${path}">${esc(testo)}</a>`
+const menu = `<nav>${link('', 'Home')} · ${link('risultati/', "Tutto l'archivio")} · ${link('indice/', 'Indici')} · ${link('collabora/', 'Collabora')} · ${link('contatto/', 'Contattaci')}</nav>`
+
 // Home
-writeFileSync('dist/index.html', template.replace('</head>', `    <link rel="canonical" href="${SITE}/" />
+writeFileSync('dist/index.html', template
+  .replace('<div id="root"></div>', `<div id="root"><main><h1>${esc(SITO)}</h1><p>${esc(DESCRIZIONE)}</p>${menu}</main></div>`)
+  .replace('</head>', `    <link rel="canonical" href="${SITE}/" />
     <meta property="og:url" content="${SITE}/" />
     ${jsonld({ '@context': 'https://schema.org', '@type': 'WebSite', name: SITO, url: `${SITE}/`, inLanguage: 'it', description: DESCRIZIONE })}
   </head>`))
 
 // Schede
-for (const r of schede) {
+schede.forEach((r, i) => {
+  const prec = schede[i - 1], succ = schede[i + 1]
   const autore = r.autore && r.autore !== 'Sconosciuto' ? r.autore : null
   const description = [
     [r.serie, [r.citta, r.data].filter(Boolean).join(', ')].filter(Boolean).join(' — '),
@@ -82,6 +89,7 @@ for (const r of schede) {
     description: description.slice(0, 300),
     image,
     h1: r.titolo,
+    extra: menu + `<p>${[prec && link(`foto/${prec.id}/`, `← ${prec.titolo}`), succ && link(`foto/${succ.id}/`, `${succ.titolo} →`)].filter(Boolean).join(' · ')}</p>`,
     data: {
       '@context': 'https://schema.org',
       '@type': r.serie === 'Fotografie' ? 'Photograph' : 'CreativeWork',
@@ -97,7 +105,7 @@ for (const r of schede) {
       isPartOf: { '@type': 'WebSite', name: SITO, url: `${SITE}/` },
     },
   })
-}
+})
 
 // Pagine fisse
 const fisse = [
@@ -106,7 +114,9 @@ const fisse = [
   ['contatto/', 'Contattaci', "Scrivi all'archivio 1968/1977 a Cesena: domande, correzioni, ricordi da segnalare."],
   ['collabora/', 'Collabora', "Hai fotografie o documenti sui movimenti politici e le lotte studentesche a Cesena tra il 1968 e il 1977? Donali all'archivio."],
 ]
-for (const [path, titolo, description] of fisse) scrivi(path, { title: `${titolo} — ${SITO}`, description, h1: titolo })
+// "Tutto l'archivio" elenca tutte le schede, così ognuna è a due clic dalla home
+const elenco = `<ul>${schede.map(r => `<li>${link(`foto/${r.id}/`, [r.titolo, r.data].filter(Boolean).join(' — '))}</li>`).join('')}</ul>`
+for (const [path, titolo, description] of fisse) scrivi(path, { title: `${titolo} — ${SITO}`, description, h1: titolo, extra: menu + (path === 'risultati/' ? elenco : '') })
 
 // Sitemap (solo indirizzi canonici: /indice/?campo=… ha come canonico /indice/) e robots.txt
 const urls = [
