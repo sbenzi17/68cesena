@@ -108,12 +108,10 @@ const fisse = [
 ]
 for (const [path, titolo, description] of fisse) scrivi(path, { title: `${titolo} — ${SITO}`, description, h1: titolo })
 
-// Sitemap e robots.txt
-const indici = ['autore', 'luogo', 'data', 'persone', 'formazione', 'parole', 'formato']
+// Sitemap (solo indirizzi canonici: /indice/?campo=… ha come canonico /indice/) e robots.txt
 const urls = [
   `<url><loc>${SITE}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
   ...fisse.map(([p]) => `<url><loc>${SITE}/${p}</loc></url>`),
-  ...indici.map(c => `<url><loc>${SITE}/indice/?campo=${c}</loc></url>`),
   ...schede.map(r => `<url><loc>${SITE}/foto/${r.id}/</loc>${r.updated_at ? `<lastmod>${r.updated_at.slice(0, 10)}</lastmod>` : ''}</url>`),
 ]
 writeFileSync('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`)
